@@ -260,7 +260,6 @@ npm test                  # vitest unit tests (auto-skips live API calls without
 | `src/commands/`       | One file per top-level command group.               |
 | `tests/`              | vitest unit tests (no live API by default).         |
 | `worker/`             | Cloudflare Worker that brokers OAuth. Separate npm subpackage. |
-| `python-reference/`   | Early Python prototype. Reference only — not published. |
 | `dist/`               | Build output. Gitignored.                           |
 
 ### If you're forking to run your own broker

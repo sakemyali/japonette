@@ -17,5 +17,5 @@
     "noUncheckedIndexedAccess": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "tests", "python-reference"]
+  "exclude": ["node_modules", "dist", "tests"]
 }
