@@ -1,0 +1,12 @@
+src/
+tests/
+python-reference/
+.vscode/
+.idea/
+.venv/
+.pytest_cache/
+.git/
+.gitignore
+tsconfig.json
+vitest.config.ts
+*.tsbuildinfo
