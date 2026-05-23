@@ -12,7 +12,7 @@ import {
 } from "../auth.js";
 import { apiGet, ApiError } from "../client.js";
 import { saveToken, type TokenCache } from "../config.js";
-import { err } from "../render.js";
+import { err, userCard } from "../render.js";
 
 const AUTHORIZE_URL = "https://api.intra.42.fr/oauth/authorize";
 const LISTEN_TIMEOUT_MS = 5 * 60 * 1000;
@@ -232,13 +232,22 @@ async function awaitCallbackOnFreePort(nonce: string): Promise<{
 
 export async function whoamiCmd(): Promise<void> {
   try {
-    const info = await apiGet<any>("/v2/oauth/token/info");
+    const [info, me] = await Promise.all([
+      apiGet<any>("/v2/oauth/token/info"),
+      apiGet<any>("/v2/me"),
+    ]);
+
+    console.log(kleur.bold("Token"));
     const scopes = info?.scopes ?? [];
-    console.log(`scopes:        ${scopes.length ? scopes.join(", ") : "-"}`);
-    console.log(`expires_in:    ${info?.expires_in_seconds ?? "-"}s`);
+    console.log(`  scopes:     ${scopes.length ? scopes.join(", ") : "-"}`);
+    console.log(`  expires_in: ${info?.expires_in_seconds ?? "-"}s`);
     if (info?.resource_owner_id) {
-      console.log(`user_id:       ${info.resource_owner_id}`);
+      console.log(`  user_id:    ${info.resource_owner_id}`);
     }
+
+    console.log("");
+    console.log(kleur.bold("You"));
+    userCard(me);
   } catch (e) {
     if (e instanceof AuthError || e instanceof ApiError) {
       err(e.message);
