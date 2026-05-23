@@ -45,10 +45,19 @@ export function err(msg: string): void {
 }
 
 export function userCard(u: any): void {
-  const cursusUsers = u.cursus_users ?? [];
-  const level =
-    cursusUsers.length > 0
-      ? Math.max(...cursusUsers.map((cu: any) => cu.level ?? 0)).toFixed(2)
+  const cursusUsers: any[] = u.cursus_users ?? [];
+
+  const findBySlug = (predicate: (slug: string) => boolean) =>
+    cursusUsers.find((cu) => predicate(String(cu?.cursus?.slug ?? "").toLowerCase()));
+
+  const main =
+    findBySlug((s) => s === "42cursus") ??
+    findBySlug((s) => s.includes("cursus") && !s.includes("piscine"));
+  const piscine = findBySlug((s) => s.includes("piscine"));
+
+  const fmtLevel = (cu: any | undefined): string =>
+    cu && typeof cu.level === "number"
+      ? `${cu.level.toFixed(2)} (${cu.cursus?.slug ?? "?"})`
       : "-";
 
   const primary = (u.campus_users ?? []).find((c: any) => c.is_primary);
@@ -59,7 +68,8 @@ export function userCard(u: any): void {
     [kleur.cyan("login"), u.login ?? "-"],
     [kleur.cyan("name"), u.displayname ?? u.usual_full_name ?? "-"],
     [kleur.cyan("email"), u.email ?? "-"],
-    [kleur.cyan("level"), level],
+    [kleur.cyan("cursus"), fmtLevel(main)],
+    [kleur.cyan("piscine"), fmtLevel(piscine)],
     [kleur.cyan("location"), u.location ?? "offline"],
     [kleur.cyan("campus_id"), campusId],
     [kleur.cyan("pool"), `${u.pool_month ?? "-"} ${u.pool_year ?? "-"}`],
