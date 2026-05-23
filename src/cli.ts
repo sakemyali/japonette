@@ -15,6 +15,7 @@ import {
 } from "./commands/friends.js";
 import { loginCmd, whoamiCmd } from "./commands/login.js";
 import { logoutCmd } from "./commands/logout.js";
+import { uninstallCmd } from "./commands/uninstall.js";
 import { userCmd } from "./commands/user.js";
 
 const VERSION = "0.1.0";
@@ -34,6 +35,12 @@ program
   .command("logout")
   .description("Delete the locally cached access + refresh tokens.")
   .action(logoutCmd);
+
+program
+  .command("uninstall")
+  .description("Wipe all local state (tokens, config, friends, campus cache).")
+  .option("-y, --yes", "skip the confirmation prompt", false)
+  .action(uninstallCmd);
 
 program
   .command("whoami")

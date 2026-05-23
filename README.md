@@ -49,6 +49,18 @@ Requires **Node.js ≥ 18** (uses the built-in `fetch` and a couple of modern
 APIs). To check: `node --version`. If you're on an older Node, install one
 via [`nvm`](https://github.com/nvm-sh/nvm) or your OS package manager.
 
+### Uninstall
+
+```bash
+japonette uninstall              # delete local state at ~/.config/42-cli/
+npm uninstall -g japonette       # remove the binary (skip if you used npx only)
+```
+
+`japonette uninstall` prompts for confirmation. Pass `-y` / `--yes` to skip
+it in scripts. It removes your saved config, OAuth tokens, friends
+watchlist, and the campus cache — but does not call any 42 API or revoke
+the token server-side (use `japonette logout` first if you want both).
+
 ## First-time setup
 
 You **do not need** a 42 API app of your own. The CLI uses a hosted OAuth
@@ -86,6 +98,7 @@ cursus + piscine levels.
 japonette login                       # browser-based 42 OAuth, ~10 seconds
 japonette logout                      # delete the local tokens (no API call)
 japonette whoami                      # token info + your profile card
+japonette uninstall [-y]              # wipe ALL local state at ~/.config/42-cli/
 
 # Profiles
 japonette user <login>                # any 42 user — login, name, levels, campus
