@@ -1,6 +1,5 @@
 src/
 tests/
-python-reference/
 .vscode/
 .idea/
 .venv/
