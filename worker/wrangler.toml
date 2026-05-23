@@ -1,0 +1,12 @@
+name = "japonette"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+# Plain vars (not secrets). Set the redirect URI to the actual deployed URL
+# once you know it, then `wrangler deploy` again.
+[vars]
+FT_UID = "u-s4t2ud-1c461d6c049495ee2e7cf1a2e84b8153e1c3d09ef83be6bac6930934df47d24d"
+FT_REDIRECT_URI = "https://japonette.emoulayali54.workers.dev/callback"
+
+# Secrets are NOT set here. Use:
+#   wrangler secret put FT_SECRET
