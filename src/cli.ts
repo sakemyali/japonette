@@ -3,6 +3,7 @@ import { Command } from "commander";
 
 import { activeCmd } from "./commands/active.js";
 import {
+  campusCurrentCmd,
   campusListCmd,
   campusSetCmd,
 } from "./commands/campus.js";
@@ -44,7 +45,10 @@ program
   .description("Look up a 42 user.")
   .action(userCmd);
 
-const campus = program.command("campus").description("Browse and configure campuses.");
+const campus = program
+  .command("campus")
+  .description("Show the default campus (auto-detected on first run).")
+  .action(campusCurrentCmd);
 campus
   .command("list")
   .option("--refresh", "bypass the local cache", false)

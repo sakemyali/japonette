@@ -77,6 +77,19 @@ export function userCard(u: any): void {
   console.log(t.toString());
 }
 
+export function campusCard(c: any, slug: string, isDefault: boolean): void {
+  const t = new Table({ chars: TABLE_CHARS, style: { head: [], border: [] } });
+  t.push(
+    [kleur.cyan("slug"), slug + (isDefault ? kleur.green("  (default)") : "")],
+    [kleur.cyan("name"), c.name ?? "-"],
+    [kleur.cyan("city"), c.city ?? "-"],
+    [kleur.cyan("country"), c.country ?? "-"],
+    [kleur.cyan("id"), String(c.id ?? "-")],
+    [kleur.cyan("users"), String(c.users_count ?? "-")],
+  );
+  console.log(t.toString());
+}
+
 export function campusTable(rows: any[]): void {
   const t = new Table({
     head: ["id", "name", "city", "country", "slug"].map((s) => kleur.bold(s)),
