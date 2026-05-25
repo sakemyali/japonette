@@ -372,6 +372,51 @@ Useful for testing a staging broker.
 - [Cloudflare Workers](https://workers.cloudflare.com/) — the OAuth
   broker would have been a much bigger lift on a VPS.
 
+## Roadmap
+
+Ideas for what comes next. PRs welcome on any of these — open an issue
+first if it's a larger one so we can align on shape.
+
+**Internationalization**
+
+- [ ] Localize CLI output by campus (Japanese for `tokyo`, French for
+  `paris`, Korean for `seoul`, etc. — auto-detected from your default
+  campus, overridable with `--lang`).
+- [ ] Translate command help text.
+
+**Peer evaluations (42-specific)**
+
+- [ ] `japonette review open` — publish a review slot for one of your
+  projects.
+- [ ] `japonette review book` — browse and book someone else's open slot.
+- [ ] `japonette review list` — see your upcoming reviews (both directions).
+
+**Interactive mode**
+
+- [ ] `japonette tui` — full-screen interactive UI (cluster view,
+  friends list, active users) with keyboard navigation.
+- [ ] Live-refresh mode for `active` and `friends online`.
+
+**Command ergonomics**
+
+- [ ] Shorter command aliases (`j a` → `active`, `j f o` → `friends online`).
+- [ ] Shell completion (bash / zsh / fish).
+- [ ] Reduce flag repetition — `--campus` is duplicated across `active`,
+  `cluster`, and `friends online`; centralize via a shared option or a
+  `JAPONETTE_CAMPUS` env var.
+- [ ] Reorganize verbs — current naming is verbose (`japonette friends
+  online` → consider `japonette online` with a friends-only filter).
+
+**Other**
+
+- [ ] Notify when a friend logs in (background watcher, native OS
+  notification).
+- [ ] `japonette seat --near <login>` — find an empty seat next to
+  someone.
+- [ ] Cluster heatmap / occupancy stats over time.
+- [ ] More campus cluster maps — ongoing, see
+  [`clusters/README.md`](clusters/README.md).
+
 ## License
 
 [MIT](LICENSE). Copyright © 2026 Moulay Ali Sakurai El Idrissi.
