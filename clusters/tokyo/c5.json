@@ -1,0 +1,15 @@
+{
+  "name": "Cluster 5",
+  "campus_slug": "tokyo",
+  "contributed_by": "",
+  "notes": "TODO: replace this placeholder with the real layout. See clusters/README.md.",
+  "ascii": [
+    "  [·] [·] [·]  ",
+    "               ",
+    "  [·] [·] [·]  "
+  ],
+  "hosts": [
+    "c5r1s1", "c5r1s2", "c5r1s3",
+    "c5r2s1", "c5r2s2", "c5r2s3"
+  ]
+}
