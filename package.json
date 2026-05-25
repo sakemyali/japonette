@@ -11,6 +11,7 @@
   },
   "files": [
     "dist",
+    "clusters",
     "README.md",
     "LICENSE"
   ],

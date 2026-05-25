@@ -7,6 +7,7 @@ import {
   campusListCmd,
   campusSetCmd,
 } from "./commands/campus.js";
+import { clusterCmd } from "./commands/cluster.js";
 import {
   friendsAddCmd,
   friendsListCmd,
@@ -72,6 +73,16 @@ program
   .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
   .option("-n, --limit <n>", "max rows to show", "50")
   .action(activeCmd);
+
+program
+  .command("cluster")
+  .description("ASCII map of a campus cluster with live occupancy.")
+  .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
+  .option("--name <cluster>", "cluster file name (e.g. c1)")
+  .option("-u, --user <login>", "highlight this user's seat with X (auto-picks cluster)")
+  .option("--me", "highlight your own seat (shortcut for --user <your-login>)")
+  .option("--no-occupancy", "skip the live API call; render an empty map")
+  .action(clusterCmd);
 
 const friends = program
   .command("friends")

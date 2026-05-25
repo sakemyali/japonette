@@ -273,7 +273,20 @@ npm test                  # vitest unit tests (auto-skips live API calls without
 | `src/commands/`       | One file per top-level command group.               |
 | `tests/`              | vitest unit tests (no live API by default).         |
 | `worker/`             | Cloudflare Worker that brokers OAuth. Separate npm subpackage. |
+| `clusters/`           | ASCII cluster maps, one JSON per cluster. Contributor-friendly — see [`clusters/README.md`](clusters/README.md). |
 | `dist/`               | Build output. Gitignored.                           |
+
+### Adding your campus cluster map
+
+If `japonette cluster` says "no cluster map yet for `<your-campus>`" —
+that's an invitation. Contribute one JSON file describing your cluster
+and the next install will have it.
+
+See [`clusters/README.md`](clusters/README.md) for the full schema and
+PR checklist. The TL;DR: draw the room with `[·]` for each seat,
+provide a `hosts` array of the workstation host strings in reading
+order, drop the file at `clusters/<campus-slug>/<cluster-name>.json`,
+open a PR. Takes ~10 minutes for a one-cluster campus.
 
 ### If you're forking to run your own broker
 
