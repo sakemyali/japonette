@@ -49,6 +49,16 @@ Requires **Node.js ≥ 18** (uses the built-in `fetch` and a couple of modern
 APIs). To check: `node --version`. If you're on an older Node, install one
 via [`nvm`](https://github.com/nvm-sh/nvm) or your OS package manager.
 
+### Update
+
+```bash
+npm update -g japonette            # pull the latest published version
+npm install -g japonette@latest    # same thing, more explicit
+```
+
+Check what you're on with `japonette --version`, and what's published with
+`npm view japonette version`.
+
 ### Uninstall
 
 ```bash
