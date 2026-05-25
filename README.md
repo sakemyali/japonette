@@ -275,6 +275,43 @@ npm test                  # vitest unit tests (auto-skips live API calls without
 - Keep PRs focused. Prefer one logical change per PR even if the diff is
   small.
 
+### Opening a pull request
+
+Standard GitHub fork-and-PR flow:
+
+1. **Fork** `sakemyali/japonette` on GitHub (top-right "Fork" button).
+2. **Clone your fork** locally:
+
+   ```bash
+   git clone https://github.com/<your-username>/japonette
+   cd japonette
+   npm install
+   ```
+
+3. **Create a branch** off `main`, following the naming convention from
+   [Code style](#code-style):
+
+   ```bash
+   git checkout -b feat/<thing>
+   ```
+
+4. **Make your changes** and commit using conventional commits.
+5. **Push to your fork**:
+
+   ```bash
+   git push -u origin feat/<thing>
+   ```
+
+6. **Open a PR** against `sakemyali/japonette:main` — either via the URL
+   GitHub prints after the push, or with `gh pr create` if you have the
+   [GitHub CLI](https://cli.github.com/).
+7. Address review comments by pushing more commits to the same branch —
+   the PR updates automatically. Once approved, it'll be merged.
+
+First time contributing to open source? GitHub's
+[fork-a-repo guide](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
+walks through the same flow with screenshots.
+
 ### Project layout
 
 | Directory             | What it is                                          |
