@@ -1,6 +1,6 @@
 {
   "name": "japonette",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A small CLI for the 42 API: browse active people at a campus and keep a local friends watchlist.",
   "type": "module",
   "engines": {
