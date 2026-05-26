@@ -8,7 +8,7 @@ import kleur from "kleur";
 import { AuthError } from "../auth.js";
 import { apiGet, ApiError } from "../client.js";
 import { CONFIG_DIR } from "../config.js";
-import { err } from "../render.js";
+import { err, fmtDuration, fmtTime, withSpinner } from "../render.js";
 import { fetchActiveLocations, resolveCampus } from "./active.js";
 
 interface ClusterFile {
@@ -136,35 +136,11 @@ function renderCluster(
   );
 }
 
-function fmtDuration(beginISO: string | undefined): string {
-  if (!beginISO) return "";
-  const begin = new Date(beginISO);
-  if (Number.isNaN(begin.getTime())) return "";
-  const totalSec = Math.floor((Date.now() - begin.getTime()) / 1000);
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  return `${h}h${String(m).padStart(2, "0")}m`;
-}
-
-function fmtTime(beginISO: string | undefined): string {
-  if (!beginISO) return "";
-  const begin = new Date(beginISO);
-  if (Number.isNaN(begin.getTime())) return "";
-  return begin
-    .toLocaleString("sv-SE", { hour12: false })
-    .slice(0, 16);
-}
-
 function printHeader(file: ClusterFile, opts: { name: string }): void {
   console.log(kleur.bold(file.name) + kleur.dim(`  (${opts.name})`));
-  if (file.contributed_by) {
-    console.log(kleur.dim(`contributed by ${file.contributed_by}`));
-  }
-  if (file.notes) console.log(kleur.dim(file.notes));
   console.log("");
   console.log(
-    kleur.dim("legend  ") +
-      styleTarget() +
+    styleTarget() +
       " target  " +
       styleOccupied() +
       " occupied  " +
@@ -262,7 +238,10 @@ export async function clusterCmd(opts: ClusterCmdOpts): Promise<void> {
     // Fetch occupancy (unless --no-occupancy was passed → opts.occupancy === false).
     const activeByHost = new Map<string, { user?: { login?: string }; begin_at?: string }>();
     if (opts.occupancy !== false) {
-      const locs = await fetchActiveLocations(campusId, 1000);
+      const locs = await withSpinner(
+        `fetching active users at ${campusSlug}...`,
+        () => fetchActiveLocations(campusId, 1000),
+      );
       for (const l of locs) {
         if (l.host) activeByHost.set(l.host, l);
       }
@@ -279,23 +258,23 @@ export async function clusterCmd(opts: ClusterCmdOpts): Promise<void> {
     console.log("");
 
     if (targetLogin) {
+      const row = (label: string, value: string): string =>
+        `  ${kleur.dim(label.padEnd(7))} ${value}`;
       if (targetHost && file.hosts.includes(targetHost)) {
-        const since = targetActiveLoc?.begin_at
-          ? `, since ${fmtTime(targetActiveLoc.begin_at)} (${fmtDuration(targetActiveLoc.begin_at)})`
-          : "";
-        console.log(
-          `  ${kleur.cyan(targetLogin)} → ${kleur.cyan(targetHost)}${since}`,
-        );
+        console.log(row("user", kleur.cyan(targetLogin)));
+        console.log(row("seat", kleur.cyan(targetHost)));
+        if (targetActiveLoc?.begin_at) {
+          const dur = fmtDuration(targetActiveLoc.begin_at);
+          const time = fmtTime(targetActiveLoc.begin_at).slice(11); // HH:MM
+          console.log(row("online", `${dur}  ${kleur.dim(`(since ${time})`)}`));
+        }
       } else if (targetHost) {
-        console.log(
-          kleur.dim(
-            `  ${targetLogin} is at ${targetHost}, but no cluster map covers it. Contribute the map!`,
-          ),
-        );
+        console.log(row("user", kleur.cyan(targetLogin)));
+        console.log(row("seat", kleur.cyan(targetHost)));
+        console.log(row("note", kleur.dim("no cluster map covers this host")));
       } else {
-        console.log(
-          kleur.dim(`  ${targetLogin} is not at a workstation right now.`),
-        );
+        console.log(row("user", kleur.cyan(targetLogin)));
+        console.log(row("status", kleur.dim("not at a workstation")));
       }
     }
   } catch (e) {
