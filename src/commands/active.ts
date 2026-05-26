@@ -1,7 +1,7 @@
 import { AuthError } from "../auth.js";
 import { ApiError, paginate } from "../client.js";
 import { loadConfig } from "../config.js";
-import { activeTable, err } from "../render.js";
+import { activeTable, err, withSpinner } from "../render.js";
 import { resolveCampusId } from "./campus.js";
 
 export async function fetchActiveLocations(
@@ -44,7 +44,10 @@ export async function activeCmd(opts: {
   const limit = Math.max(1, Number(opts.limit ?? 50));
   try {
     const { slug, id } = await resolveCampus(opts.campus);
-    const locs = await fetchActiveLocations(id, limit);
+    const locs = await withSpinner(
+      `fetching active users at ${slug}...`,
+      () => fetchActiveLocations(id, limit),
+    );
     activeTable(locs, `Active now @ ${slug}`);
   } catch (e) {
     if (e instanceof ApiError || e instanceof AuthError) {
