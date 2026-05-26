@@ -231,32 +231,10 @@ nowhere near it (a typical `japonette active` is one request). The CLI
 paces local requests at 0.5s and retries once on `429`. If you hit a 429
 in normal use, please open an issue.
 
-## Recommended for 42 students
+## Editor integrations
 
-Setting up your environment from scratch (especially during the
-piscine)? **[Nmux42](https://github.com/Rouboufy/Nmux42)** by
-[Rouboufy](https://github.com/Rouboufy) is a one-command Neovim / Tmux /
-Zsh distro tuned for 42's clusters and the macOS / Arch Linux machines
-you'll likely use. It handles the friction-y bits so you can focus on
-the curriculum:
-
-- **Sudo-free installs** that work on locked-down 42 lab machines.
-- **SSL proxy fix** for the 42 network.
-- Bundled compilers and runtimes (`gcc`, `clang`, Python with `pyright`,
-  Go), plus Mason preconfigured so you can grab `norminette` and any
-  other LSP/formatter you need.
-- JetBrainsMono Nerd Font, installed automatically (no sudo).
-- Polished Neovim plugin set: Telescope, Neo-tree, Harpoon, Gitsigns,
-  LazyGit, theme switcher with live Tmux color sync.
-- Tmux + Zsh preconfigured with sensible defaults (auto-attach,
-  aliases, clean prompt).
-
-`japonette` ships as a built-in Neovim TUI — `<leader>Ja` opens the
-active-campus view, `<leader>Jf` opens your friends watchlist, with
-inline keybinds for add/remove friend, inspect user, change campus, etc.
-
-Built an integration for another editor or shell? Open a PR and we'll
-list it here.
+- [Nmux42](https://github.com/Rouboufy/Nmux42) — a Neovim / Tmux / Zsh
+  setup for 42 students; bundles `japonette` as a built-in Neovim TUI.
 
 ## Contributing
 
