@@ -25,13 +25,13 @@ function parseIso(s: string | null | undefined): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-function fmtTime(s: string | null | undefined): string {
+export function fmtTime(s: string | null | undefined): string {
   const d = parseIso(s);
   if (!d) return "-";
   return d.toLocaleString("sv-SE", { hour12: false }).slice(0, 16);
 }
 
-function fmtDuration(begin: string | null | undefined): string {
+export function fmtDuration(begin: string | null | undefined): string {
   const d = parseIso(begin);
   if (!d) return "-";
   const total = Math.floor((Date.now() - d.getTime()) / 1000);
@@ -42,6 +42,28 @@ function fmtDuration(begin: string | null | undefined): string {
 
 export function err(msg: string): void {
   process.stderr.write(kleur.red(msg) + "\n");
+}
+
+export async function withSpinner<T>(text: string, fn: () => Promise<T>): Promise<T> {
+  const frames = ["◐", "◓", "◑", "◒"];
+  const isTTY = process.stderr.isTTY;
+  let i = 0;
+  let interval: ReturnType<typeof setInterval> | null = null;
+  if (isTTY) {
+    process.stderr.write(`${frames[0]} ${text}`);
+    interval = setInterval(() => {
+      i = (i + 1) % frames.length;
+      process.stderr.write(`\r${frames[i]} ${text}`);
+    }, 80);
+  }
+  try {
+    return await fn();
+  } finally {
+    if (interval) clearInterval(interval);
+    if (isTTY) {
+      process.stderr.write(`\r${" ".repeat(text.length + 2)}\r`);
+    }
+  }
 }
 
 export function userCard(u: any): void {
