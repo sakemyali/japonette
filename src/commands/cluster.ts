@@ -265,8 +265,9 @@ export async function clusterCmd(opts: ClusterCmdOpts): Promise<void> {
         console.log(row("seat", kleur.cyan(targetHost)));
         if (targetActiveLoc?.begin_at) {
           const dur = fmtDuration(targetActiveLoc.begin_at);
-          const time = fmtTime(targetActiveLoc.begin_at).slice(11); // HH:MM
-          console.log(row("online", `${dur}  ${kleur.dim(`(since ${time})`)}`));
+          const full = fmtTime(targetActiveLoc.begin_at);
+          const since = full === "-" ? "" : `  ${kleur.dim(`(since ${full.slice(11, 16)})`)}`;
+          console.log(row("online", `${dur}${since}`));
         }
       } else if (targetHost) {
         console.log(row("user", kleur.cyan(targetLogin)));
