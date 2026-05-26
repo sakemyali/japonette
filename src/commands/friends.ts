@@ -9,7 +9,7 @@ import {
   loadFriends,
   saveFriends,
 } from "../config.js";
-import { err, friendsOnlineTable, friendsTable } from "../render.js";
+import { err, friendsOnlineTable, friendsTable, withSpinner } from "../render.js";
 import { fetchActiveLocations, resolveCampus } from "./active.js";
 
 function today(): string {
@@ -72,8 +72,11 @@ export async function friendsOnlineCmd(opts: { campus?: string }): Promise<void>
   }
   const wanted = new Set(friends.friends.map((f) => f.login));
   try {
-    const { id } = await resolveCampus(opts.campus);
-    const locs = await fetchActiveLocations(id, 1000);
+    const { slug, id } = await resolveCampus(opts.campus);
+    const locs = await withSpinner(
+      `fetching active users at ${slug}...`,
+      () => fetchActiveLocations(id, 1000),
+    );
     const matched = locs.filter((l) => wanted.has(l?.user?.login));
     const activeLogins = new Set(matched.map((l) => l?.user?.login));
     const offline = [...wanted].filter((l) => !activeLogins.has(l));
