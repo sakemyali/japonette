@@ -9,7 +9,7 @@
 > your campus right now, look up profiles, and keep a personal "friends"
 > watchlist — all from your terminal.
 
-![japonette demo](https://raw.githubusercontent.com/matiboux/japonette/main/docs/demo.gif)
+![japonette demo](https://raw.githubusercontent.com/sakemyali/japonette/main/docs/demo.gif)
 
 ## Why
 
