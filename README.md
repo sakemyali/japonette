@@ -9,9 +9,7 @@
 > your campus right now, look up profiles, and keep a personal "friends"
 > watchlist — all from your terminal.
 
-![japonette demo](docs/demo.gif)
-
-<!-- Regenerate the GIF with `vhs docs/demo.tape` after editing the friend login in the tape. -->
+![japonette demo](https://raw.githubusercontent.com/matiboux/japonette/main/docs/demo.gif)
 
 ## Why
 
@@ -52,6 +50,7 @@ japonette user <login>                # any 42 user — login, name, levels, cam
 # Campus
 japonette campus                      # show your default (auto-detects on first run)
 japonette campus list                 # all ~50 campuses with their slugs
+japonette campus list --refresh       # refresh the cached campus list
 japonette campus set paris            # change your default
 
 # Active locations
@@ -60,7 +59,8 @@ japonette active --campus paris       # any campus by slug
 japonette active -n 10                # limit rows
 
 # Cluster maps
-japonette cluster                     # ASCII map of your default cluster
+japonette cluster                     # ASCII map of an auto-selected cluster, or list available names
+japonette cluster --name <cluster>    # show a specific cluster by name
 japonette cluster --user <login>      # show where someone is sitting (the X)
 
 # Friends (local watchlist — the 42 API has no friends concept)
@@ -173,11 +173,11 @@ also fine — the CLI will re-create it.
 
 ## More
 
-- **[Contributing](CONTRIBUTING.md)** — dev setup, code style, opening a
+- **[Contributing](https://github.com/moulaye/japonette/blob/main/CONTRIBUTING.md)** — dev setup, code style, opening a
   PR, project layout, adding a cluster map for your campus.
-- **[Roadmap](ROADMAP.md)** — planned features. PRs welcome on any of
+- **[Roadmap](https://github.com/moulaye/japonette/blob/main/ROADMAP.md)** — planned features. PRs welcome on any of
   them.
-- **[Reference](docs/REFERENCE.md)** — how the OAuth broker works, rate
+- **[Reference](https://github.com/moulaye/japonette/blob/main/docs/REFERENCE.md)** — how the OAuth broker works, rate
   limits, the `login` flow in detail.
 
 ## Acknowledgements
