@@ -1,5 +1,10 @@
 # japonette
 
+[![npm version](https://img.shields.io/npm/v/japonette)](https://www.npmjs.com/package/japonette)
+[![node](https://img.shields.io/node/v/japonette)](https://nodejs.org)
+[![license](https://img.shields.io/npm/l/japonette)](LICENSE)
+[![downloads](https://img.shields.io/npm/dm/japonette)](https://www.npmjs.com/package/japonette)
+
 > A tiny CLI for the [42 intra API](https://api.intra.42.fr). See who's at
 > your campus right now, look up profiles, and keep a personal "friends"
 > watchlist — all from your terminal.
