@@ -95,5 +95,9 @@ remember.
 - [ ] `japonette seat --near <login>` — find an empty seat next to
   someone.
 - [ ] Cluster heatmap / occupancy stats over time.
+- [ ] Better post-login browser landing page — currently bare "You can
+  close this tab"; show the logged-in user (login, avatar, campus) and
+  a short starter cheatsheet so the first impression isn't a blank
+  white page.
 - [ ] More campus cluster maps — ongoing, see
   [`clusters/README.md`](clusters/README.md).
