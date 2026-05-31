@@ -62,6 +62,12 @@ japonette uninstall [-y]              # wipe all local state at ~/.config/42-cli
 # Profiles
 japonette user <login>                # any 42 user — login, name, levels, campus
 
+# Logtime
+japonette logtime                     # your monthly logtime, last 4 months
+japonette logtime alice               # someone else's logtime
+japonette logtime --months 6          # widen the range
+japonette logtime --days 14           # or scope it to recent days
+
 # Campus
 japonette campus                      # show your default (auto-detects on first run)
 japonette campus list                 # all ~50 campuses with their slugs
@@ -108,6 +114,12 @@ japonette friends online   # check this any time you head to campus
 
 ```bash
 japonette user norminette
+```
+
+**See how much someone's been on campus lately**:
+
+```bash
+japonette logtime alice --months 6   # per-month totals with a bar chart
 ```
 
 **Switch campus temporarily** without changing your default:

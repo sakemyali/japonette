@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { Command } from "commander";
 
 import { activeCmd } from "./commands/active.js";
@@ -20,7 +24,13 @@ import { logtimeCmd } from "./commands/logtime.js";
 import { uninstallCmd } from "./commands/uninstall.js";
 import { userCmd } from "./commands/user.js";
 
-const VERSION = "0.1.0";
+// Read the version from package.json so it can never drift from the
+// published version. From dist/cli.js this resolves to ../package.json,
+// which npm always includes in the published tarball.
+const pkg = JSON.parse(
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8"),
+) as { version: string };
+const VERSION = pkg.version;
 
 const program = new Command();
 program
