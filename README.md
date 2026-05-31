@@ -35,6 +35,21 @@ Want to try without installing first?
 npx japonette --help
 ```
 
+### On a 42 cluster machine (no sudo)
+
+Cluster PCs block `npm install -g` because npm's global prefix lives in a
+root-owned directory. One command fixes that — it points npm's prefix at
+`~/.npm-global`, persists `~/.npm-global/bin` on your `PATH`, then installs
+japonette. Idempotent, safe to re-run.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sakemyali/japonette/main/scripts/cluster-install.sh | bash
+```
+
+Open a new terminal afterwards (or `source ~/.zshrc`) so the new `PATH`
+takes effect, then `japonette login`. To inspect the script before
+running, see [`scripts/cluster-install.sh`](scripts/cluster-install.sh).
+
 ## Commands
 
 ```bash
