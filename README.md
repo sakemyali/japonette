@@ -37,18 +37,25 @@ npx japonette --help
 
 ### On a 42 cluster machine (no sudo)
 
-Cluster PCs block `npm install -g` because npm's global prefix lives in a
-root-owned directory. One command fixes that — it points npm's prefix at
-`~/.npm-global`, persists `~/.npm-global/bin` on your `PATH`, then installs
-japonette. Idempotent, safe to re-run.
+42 cluster PCs are awkward for two reasons: `npm install -g` needs a
+root-owned directory, and the system Node is locked to an old version
+(e.g. 12.22.9) that japonette can't run on — it needs Node ≥ 18 for the
+global `fetch`. One command handles both, no sudo:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sakemyali/japonette/main/scripts/cluster-install.sh | bash
 ```
 
-Open a new terminal afterwards (or `source ~/.zshrc`) so the new `PATH`
-takes effect, then `japonette login`. To inspect the script before
-running, see [`scripts/cluster-install.sh`](scripts/cluster-install.sh).
+- If your Node is already ≥ 18, it just points npm's prefix at
+  `~/.npm-global` and installs there.
+- If it's too old (the usual cluster case), it bootstraps a modern Node
+  LTS via [`nvm`](https://github.com/nvm-sh/nvm) — fully user-space — and
+  installs under that.
+
+Either way it's idempotent and safe to re-run. Open a new terminal
+afterwards (or `source ~/.zshrc`) so the new `PATH` / nvm setup takes
+effect, then `japonette login`. To inspect the script before running, see
+[`scripts/cluster-install.sh`](scripts/cluster-install.sh).
 
 ## Commands
 
