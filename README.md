@@ -200,11 +200,11 @@ also fine — the CLI will re-create it.
 
 ## More
 
-- **[Contributing](https://github.com/moulaye/japonette/blob/main/CONTRIBUTING.md)** — dev setup, code style, opening a
+- **[Contributing](CONTRIBUTING.md)** — dev setup, code style, opening a
   PR, project layout, adding a cluster map for your campus.
-- **[Roadmap](https://github.com/moulaye/japonette/blob/main/ROADMAP.md)** — planned features. PRs welcome on any of
+- **[Roadmap](ROADMAP.md)** — planned features. PRs welcome on any of
   them.
-- **[Reference](https://github.com/moulaye/japonette/blob/main/docs/REFERENCE.md)** — how the OAuth broker works, rate
+- **[Reference](docs/REFERENCE.md)** — how the OAuth broker works, rate
   limits, the `login` flow in detail.
 
 ## Acknowledgements

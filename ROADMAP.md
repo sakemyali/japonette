@@ -3,6 +3,14 @@
 Ideas for what comes next. PRs welcome on any of these — open an issue
 first if it's a larger one so we can align on shape.
 
+## Recently shipped
+
+- [x] `japonette logtime [<login>]` — per-month logtime totals with a bar
+  chart; defaults to the last 4 months, scoped with `--days` / `--months`
+  *(0.2.0)*.
+- [x] One-line install for 42 cluster machines without sudo —
+  [`scripts/cluster-install.sh`](scripts/cluster-install.sh) *(0.2.0)*.
+
 ## Command ergonomics *(priority)*
 
 The current command surface is verbose and scattered — verbs aren't
