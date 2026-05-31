@@ -16,6 +16,7 @@ import {
 } from "./commands/friends.js";
 import { loginCmd, whoamiCmd } from "./commands/login.js";
 import { logoutCmd } from "./commands/logout.js";
+import { logtimeCmd } from "./commands/logtime.js";
 import { uninstallCmd } from "./commands/uninstall.js";
 import { userCmd } from "./commands/user.js";
 
@@ -73,6 +74,15 @@ program
   .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
   .option("-n, --limit <n>", "max rows to show", "50")
   .action(activeCmd);
+
+program
+  .command("logtime [login]")
+  .description("Per-month logtime totals for a user (defaults to you).")
+  .option("-d, --days <n>", "range as days back from today (mutually exclusive with --months)")
+  .option("-m, --months <n>", "range as months back from today (default: 4)")
+  .action((login: string | undefined, opts: { days?: string; months?: string }) =>
+    logtimeCmd(login, opts),
+  );
 
 program
   .command("cluster")

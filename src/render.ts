@@ -169,6 +169,46 @@ export function friendsTable(rows: { login: string; display_name: string; added:
   console.log(t.toString());
 }
 
+function fmtHM(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  return `${h}h${String(m).padStart(2, "0")}m`;
+}
+
+export function logtimeTable(
+  buckets: { ym: string; seconds: number }[],
+  title: string,
+  totalDays: number,
+): void {
+  console.log(kleur.bold(title));
+  if (buckets.length === 0) {
+    console.log(kleur.dim("no logtime in this range"));
+    return;
+  }
+  const max = Math.max(...buckets.map((b) => b.seconds), 1);
+  const BAR_WIDTH = 20;
+  const bar = (s: number): string => {
+    const filled = Math.round((s / max) * BAR_WIDTH);
+    return "█".repeat(filled) + " ".repeat(BAR_WIDTH - filled);
+  };
+  const t = new Table({
+    head: ["month", "total", ""].map((s) => kleur.bold(s)),
+    chars: TABLE_CHARS,
+    colAligns: ["left", "right", "left"],
+  });
+  for (const b of buckets) {
+    t.push([b.ym, fmtHM(b.seconds), bar(b.seconds)]);
+  }
+  const grandTotal = buckets.reduce((a, b) => a + b.seconds, 0);
+  const avgPerDay = totalDays > 0 ? Math.floor(grandTotal / totalDays) : 0;
+  t.push([
+    kleur.bold("total"),
+    kleur.bold(fmtHM(grandTotal)),
+    kleur.dim(`avg ${fmtHM(avgPerDay)}/day`),
+  ]);
+  console.log(t.toString());
+}
+
 export function friendsOnlineTable(active: any[], offline: string[]): void {
   if (active.length === 0) {
     console.log(kleur.dim("no friends active"));
