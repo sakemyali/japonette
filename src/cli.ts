@@ -23,6 +23,7 @@ import { logoutCmd } from "./commands/logout.js";
 import { logtimeCmd } from "./commands/logtime.js";
 import { uninstallCmd } from "./commands/uninstall.js";
 import { meCmd, userCmd } from "./commands/user.js";
+import { registerCompletionCommand } from "./completion.js";
 import { configureGroupedHelp } from "./help.js";
 
 // Read the version from package.json so it can never drift from the
@@ -133,6 +134,8 @@ friends
   .command("remove <login>")
   .description("Remove a login from your local friends list.")
   .action(friendsRemoveCmd);
+
+registerCompletionCommand(program);
 
 program.parseAsync(process.argv).catch((e: unknown) => {
   process.stderr.write(String(e instanceof Error ? e.message : e) + "\n");

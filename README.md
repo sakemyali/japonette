@@ -102,6 +102,26 @@ japonette friends online              # which friends are at the campus right no
 commands by category; `japonette <command> --help` shows the flags for any
 one command.
 
+## Shell completion
+
+`japonette completion <shell>` prints a completion script for **bash**,
+**zsh**, or **fish** (the shell is inferred from `$SHELL` if you omit it):
+
+```bash
+# zsh — quick, for the current session
+eval "$(japonette completion zsh)"
+
+# fish — persistent
+japonette completion fish > ~/.config/fish/completions/japonette.fish
+
+# bash — persistent
+japonette completion bash > /etc/bash_completion.d/japonette
+```
+
+It completes the top-level commands and their subcommands (`campus list`,
+`friends online`, …). The script is generated from the live command set,
+so re-running it after an upgrade keeps completions current.
+
 ## Examples
 
 **Daily "is anyone at the lab" check**:
