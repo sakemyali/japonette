@@ -18,11 +18,11 @@ import {
   friendsOnlineCmd,
   friendsRemoveCmd,
 } from "./commands/friends.js";
-import { loginCmd, whoamiCmd } from "./commands/login.js";
+import { loginCmd } from "./commands/login.js";
 import { logoutCmd } from "./commands/logout.js";
 import { logtimeCmd } from "./commands/logtime.js";
 import { uninstallCmd } from "./commands/uninstall.js";
-import { userCmd } from "./commands/user.js";
+import { meCmd, userCmd } from "./commands/user.js";
 
 // Read the version from package.json so it can never drift from the
 // published version. From dist/cli.js this resolves to ../package.json,
@@ -55,9 +55,10 @@ program
   .action(uninstallCmd);
 
 program
-  .command("whoami")
-  .description("Verify the cached token by hitting /v2/oauth/token/info.")
-  .action(whoamiCmd);
+  .command("me")
+  .description("Your own profile — identity + live location (cluster map if online).")
+  .option("--info", "also show the academic profile (cursus, piscine, campus, pool)")
+  .action((opts: { info?: boolean }) => meCmd(opts));
 
 program
   .command("user <login>")
