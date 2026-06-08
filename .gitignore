@@ -13,3 +13,6 @@ venv/
 .DS_Store
 .vscode/
 docs/demo.tape
+
+# local-only design scratch (kept out of the repo)
+docs/command-grammar-proposal.md
