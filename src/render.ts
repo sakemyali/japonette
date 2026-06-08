@@ -131,6 +131,24 @@ export function campusTable(rows: any[]): void {
   console.log(t.toString());
 }
 
+// Borderless index of a campus's clusters: occupied/total seats and how many
+// of your friends are seated in each.
+export function clusterIndexTable(
+  rows: { label: string; occupied: number; total: number; friends: number }[],
+): void {
+  if (rows.length === 0) return;
+  const labelW = Math.max(...rows.map((r) => r.label.length));
+  const occW = Math.max(...rows.map((r) => `${r.occupied}/${r.total}`.length));
+  for (const r of rows) {
+    const occ = `${r.occupied}/${r.total}`.padStart(occW);
+    const friends =
+      r.friends > 0
+        ? kleur.cyan(`${r.friends} ${r.friends === 1 ? "friend" : "friends"}`)
+        : kleur.dim("0 friends");
+    console.log(` ${r.label.padEnd(labelW)}   ${occ}   ${friends}`);
+  }
+}
+
 export function activeTable(locations: any[], title: string): void {
   if (locations.length === 0) {
     console.log(kleur.dim("nobody is active"));

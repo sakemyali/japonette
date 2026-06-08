@@ -95,14 +95,10 @@ program
   );
 
 program
-  .command("cluster")
-  .description("ASCII map of a campus cluster with live occupancy.")
+  .command("cluster [id]")
+  .description("List the campus's clusters (occupancy + friends), or open one's map by name or code.")
   .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
-  .option("--name <cluster>", "cluster file name (e.g. c1)")
-  .option("-u, --user <login>", "highlight this user's seat with X (auto-picks cluster)")
-  .option("--me", "highlight your own seat (shortcut for --user <your-login>)")
-  .option("--no-occupancy", "skip the live API call; render an empty map")
-  .action(clusterCmd);
+  .action((id: string | undefined, opts: { campus?: string }) => clusterCmd(id, opts));
 
 const friends = program
   .command("friends")
