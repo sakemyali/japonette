@@ -247,7 +247,9 @@ export async function whoamiCmd(): Promise<void> {
 
     console.log("");
     console.log(kleur.bold("You"));
-    userCard(me);
+    // whoami keeps the full profile card (it becomes `me` later, mirroring
+    // the presence-first `user`).
+    userCard(me, { info: true });
   } catch (e) {
     if (e instanceof AuthError || e instanceof ApiError) {
       err(e.message);

@@ -61,8 +61,9 @@ program
 
 program
   .command("user <login>")
-  .description("Look up a 42 user.")
-  .action(userCmd);
+  .description("Look up a 42 user — identity + live location (cluster map if online).")
+  .option("--info", "also show the academic profile (cursus, piscine, campus, pool)")
+  .action((login: string, opts: { info?: boolean }) => userCmd(login, opts));
 
 const campus = program
   .command("campus")
