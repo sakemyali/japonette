@@ -48,6 +48,13 @@ export const COMMAND_GROUPS: HelpGroup[] = [
       { name: "friends remove <login>", summary: "remove a login" },
     ],
   },
+  {
+    title: "Shell",
+    commands: [
+      { name: "completion <shell>", summary: "print a bash/zsh/fish completion script" },
+      { name: "help [command]", summary: "this overview, or help for one command" },
+    ],
+  },
 ];
 
 // Width of the widest command name across all groups, for column alignment.
