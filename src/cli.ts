@@ -23,6 +23,7 @@ import { logoutCmd } from "./commands/logout.js";
 import { logtimeCmd } from "./commands/logtime.js";
 import { uninstallCmd } from "./commands/uninstall.js";
 import { userCmd } from "./commands/user.js";
+import { configureGroupedHelp } from "./help.js";
 
 // Read the version from package.json so it can never drift from the
 // published version. From dist/cli.js this resolves to ../package.json,
@@ -37,6 +38,9 @@ program
   .name("japonette")
   .description("A small CLI for the 42 API.")
   .version(VERSION);
+
+// Group the root help by category instead of one flat command dump.
+configureGroupedHelp(program);
 
 program
   .command("login")
