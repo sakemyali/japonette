@@ -23,7 +23,7 @@ writes to 42's servers.
 ```bash
 npm install -g japonette        # install (needs Node ≥ 18)
 japonette login                 # browser-based 42 OAuth, ~10 seconds
-japonette active                # see who's at your campus right now
+japonette campus                # see who's at your campus right now
 ```
 
 That's it — no API app to register, no config to write. The CLI uses a
@@ -60,14 +60,16 @@ effect, then `japonette login`. To inspect the script before running, see
 ## Commands
 
 ```bash
-# Auth
+# Account
 japonette login                       # browser-based 42 OAuth
 japonette logout                      # delete local tokens
-japonette whoami                      # token info + your profile card
+japonette me                          # your profile + live location (cluster map if online)
+japonette me --info                   # also show cursus, piscine, campus, pool
 japonette uninstall [-y]              # wipe all local state at ~/.config/42-cli/
 
 # Profiles
-japonette user <login>                # any 42 user — login, name, levels, campus
+japonette user <login>                # identity + live location; cluster map if they're online
+japonette user <login> --info         # also show the academic profile
 
 # Logtime
 japonette logtime                     # your monthly logtime, last 4 months
@@ -75,32 +77,33 @@ japonette logtime alice               # someone else's logtime
 japonette logtime --months 6          # widen the range
 japonette logtime --days 14           # or scope it to recent days
 
-# Campus
-japonette campus                      # show your default (auto-detects on first run)
+# Campus — who's online, plus your default
+japonette campus                      # who's at your campus right now
+japonette campus -c paris             # any campus by slug
+japonette campus -n 10                # limit rows
 japonette campus list                 # all ~50 campuses with their slugs
-japonette campus list --refresh       # refresh the cached campus list
+japonette campus set                  # show your default campus
 japonette campus set paris            # change your default
 
-# Active locations
-japonette active                      # default campus, top 50 by most recent login
-japonette active --campus paris       # any campus by slug
-japonette active -n 10                # limit rows
-
-# Cluster maps
-japonette cluster                     # ASCII map of an auto-selected cluster, or list available names
-japonette cluster --name <cluster>    # show a specific cluster by name
-japonette cluster --user <login>      # show where someone is sitting (the X)
+# Cluster maps (contributed per campus)
+japonette cluster                     # index of the campus's clusters: occupancy + friends
+japonette cluster c1                  # open one cluster's map, by code or friendly name
 
 # Friends (local watchlist — the 42 API has no friends concept)
+japonette friends                     # which friends are at the campus right now
+japonette friends list                # show your watchlist
 japonette friends add <login>
 japonette friends remove <login>
-japonette friends list
-japonette friends online              # which friends are at the campus right now
 ```
 
 `japonette help` (or `japonette --help`) shows a grouped overview of the
 commands by category; `japonette <command> --help` shows the flags for any
 one command.
+
+Commands that target a campus take `-c, --campus <slug>` and default to your
+saved campus. Set `JAPONETTE_CAMPUS` to override the default for a whole shell
+session without passing `-c` each time (precedence: `-c` flag → `$JAPONETTE_CAMPUS`
+→ saved default).
 
 ## Shell completion
 
@@ -127,7 +130,7 @@ so re-running it after an upgrade keeps completions current.
 **Daily "is anyone at the lab" check**:
 
 ```bash
-japonette active | head
+japonette campus | head
 ```
 
 **Build a small watchlist of people you team with**:
@@ -135,10 +138,10 @@ japonette active | head
 ```bash
 japonette friends add alice
 japonette friends add bob
-japonette friends online   # check this any time you head to campus
+japonette friends     # check this any time you head to campus
 ```
 
-**Check a friend at another campus**:
+**Find where a friend is sitting** (cluster map, if their campus has one):
 
 ```bash
 japonette user norminette
@@ -153,7 +156,8 @@ japonette logtime alice --months 6   # per-month totals with a bar chart
 **Switch campus temporarily** without changing your default:
 
 ```bash
-japonette active --campus paris
+japonette campus -c paris            # one-off
+export JAPONETTE_CAMPUS=paris        # or for the whole session
 ```
 
 ## Updating & uninstalling
