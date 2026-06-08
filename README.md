@@ -98,8 +98,9 @@ japonette friends list
 japonette friends online              # which friends are at the campus right now
 ```
 
-`japonette --help` and `japonette <command> --help` show flags for any
-command.
+`japonette help` (or `japonette --help`) shows a grouped overview of the
+commands by category; `japonette <command> --help` shows the flags for any
+one command.
 
 ## Shell completion
 
