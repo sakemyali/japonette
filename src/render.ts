@@ -66,36 +66,56 @@ export async function withSpinner<T>(text: string, fn: () => Promise<T>): Promis
   }
 }
 
-export function userCard(u: any): void {
-  const cursusUsers: any[] = u.cursus_users ?? [];
+// Primary campus (id + human slug) from the user payload's embedded `campus`
+// list. The slug matches the rest of the CLI, which speaks slugs; the id lets
+// callers fetch that campus's occupancy.
+export function primaryCampus(u: any): { id: number; slug: string } | null {
+  const cu = (u.campus_users ?? []).find((c: any) => c.is_primary) ?? (u.campus_users ?? [])[0];
+  const campus = cu
+    ? (u.campus ?? []).find((c: any) => Number(c.id) === Number(cu.campus_id))
+    : undefined;
+  if (!campus?.name) return null;
+  return {
+    id: Number(campus.id),
+    slug: String(campus.name).toLowerCase().replace(/\s+/g, "-"),
+  };
+}
 
-  const findBySlug = (predicate: (slug: string) => boolean) =>
-    cursusUsers.find((cu) => predicate(String(cu?.cursus?.slug ?? "").toLowerCase()));
-
-  const main =
-    findBySlug((s) => s === "42cursus") ??
-    findBySlug((s) => s.includes("cursus") && !s.includes("piscine"));
-  const piscine = findBySlug((s) => s.includes("piscine"));
-
-  const fmtLevel = (cu: any | undefined): string =>
-    cu && typeof cu.level === "number"
-      ? `${cu.level.toFixed(2)} (${cu.cursus?.slug ?? "?"})`
-      : "-";
-
-  const primary = (u.campus_users ?? []).find((c: any) => c.is_primary);
-  const campusId = primary ? String(primary.campus_id) : "-";
+// Presence-first user card: identity + live status by default. `info` appends
+// the academic profile (the `ls -l` idiom — more detail, same card).
+export function userCard(u: any, opts: { info?: boolean } = {}): void {
+  const status = u.location
+    ? kleur.green("online") + kleur.dim(" — ") + u.location
+    : kleur.dim("offline");
 
   const t = new Table({ chars: TABLE_CHARS, style: { head: [], border: [] } });
   t.push(
     [kleur.cyan("login"), u.login ?? "-"],
     [kleur.cyan("name"), u.displayname ?? u.usual_full_name ?? "-"],
-    [kleur.cyan("email"), u.email ?? "-"],
-    [kleur.cyan("cursus"), fmtLevel(main)],
-    [kleur.cyan("piscine"), fmtLevel(piscine)],
-    [kleur.cyan("location"), u.location ?? "offline"],
-    [kleur.cyan("campus_id"), campusId],
-    [kleur.cyan("pool"), `${u.pool_month ?? "-"} ${u.pool_year ?? "-"}`],
+    [kleur.cyan("status"), status],
   );
+
+  if (opts.info) {
+    const cursusUsers: any[] = u.cursus_users ?? [];
+    const findCursus = (predicate: (slug: string) => boolean) =>
+      cursusUsers.find((cu) => predicate(String(cu?.cursus?.slug ?? "").toLowerCase()));
+    const main =
+      findCursus((s) => s === "42cursus") ??
+      findCursus((s) => s.includes("cursus") && !s.includes("piscine"));
+    const piscine = findCursus((s) => s.includes("piscine"));
+    const fmtLevel = (cu: any | undefined): string =>
+      cu && typeof cu.level === "number"
+        ? `${cu.level.toFixed(2)} (${cu.cursus?.slug ?? "?"})`
+        : "-";
+
+    t.push(
+      [kleur.cyan("email"), u.email ?? "-"],
+      [kleur.cyan("cursus"), fmtLevel(main)],
+      [kleur.cyan("piscine"), fmtLevel(piscine)],
+      [kleur.cyan("campus"), primaryCampus(u)?.slug ?? "-"],
+      [kleur.cyan("pool"), `${u.pool_month ?? "-"} ${u.pool_year ?? "-"}`],
+    );
+  }
   console.log(t.toString());
 }
 
