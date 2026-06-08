@@ -41,19 +41,40 @@ async function drawPresenceMap(u: any): Promise<void> {
   }
 }
 
+// Render a user payload: presence card + inline map. Shared by `user` and `me`.
+async function renderUser(data: any, info: boolean): Promise<void> {
+  userCard(data, { info });
+  await drawPresenceMap(data);
+}
+
 export async function userCmd(
   login: string,
   opts: { info?: boolean } = {},
 ): Promise<void> {
   try {
     const data = await apiGet<any>(`/v2/users/${encodeURIComponent(login)}`);
-    userCard(data, { info: opts.info ?? false });
-    await drawPresenceMap(data);
+    await renderUser(data, opts.info ?? false);
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) {
       err(`user not found: ${login}`);
       process.exit(1);
     }
+    if (e instanceof ApiError || e instanceof AuthError) {
+      err(e.message);
+      process.exit(1);
+    }
+    throw e;
+  }
+}
+
+// `me` is `user` pointed at yourself: same presence-first card and map, no
+// login argument. A successful /v2/me also proves the cached token works,
+// covering the old `whoami` check.
+export async function meCmd(opts: { info?: boolean } = {}): Promise<void> {
+  try {
+    const data = await apiGet<any>("/v2/me");
+    await renderUser(data, opts.info ?? false);
+  } catch (e) {
     if (e instanceof ApiError || e instanceof AuthError) {
       err(e.message);
       process.exit(1);
