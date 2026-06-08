@@ -18,7 +18,7 @@ describe("grouped root help", () => {
     const out = program.helpInformation();
     for (const g of COMMAND_GROUPS) expect(out).toContain(g.title);
     expect(out).toContain("login");
-    expect(out).toContain("friends online");
+    expect(out).toContain("friends");
     // commander's default flat listing header should be gone
     expect(out).not.toContain("Commands:");
   });

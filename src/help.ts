@@ -19,18 +19,17 @@ export const COMMAND_GROUPS: HelpGroup[] = [
     commands: [
       { name: "login", summary: "browser-based 42 OAuth login" },
       { name: "logout", summary: "delete cached tokens" },
-      { name: "whoami", summary: "token info + your profile" },
+      { name: "me", summary: "your profile + live location" },
       { name: "uninstall", summary: "wipe all local state" },
     ],
   },
   {
     title: "Campus & presence",
     commands: [
-      { name: "active", summary: "who's at your campus right now" },
-      { name: "cluster", summary: "ASCII cluster map with live occupancy" },
-      { name: "campus", summary: "show your default campus" },
+      { name: "campus", summary: "who's at your campus right now" },
       { name: "campus list", summary: "all campuses + their slugs" },
-      { name: "campus set <slug>", summary: "set your default campus" },
+      { name: "campus set [slug]", summary: "show or set your default campus" },
+      { name: "cluster [id]", summary: "cluster occupancy index, or one map" },
     ],
   },
   {
@@ -43,7 +42,7 @@ export const COMMAND_GROUPS: HelpGroup[] = [
   {
     title: "Friends",
     commands: [
-      { name: "friends online", summary: "which friends are at the campus" },
+      { name: "friends", summary: "which friends are at the campus" },
       { name: "friends list", summary: "show your watchlist" },
       { name: "friends add <login>", summary: "add a login to the watchlist" },
       { name: "friends remove <login>", summary: "remove a login" },
