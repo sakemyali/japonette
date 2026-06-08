@@ -23,6 +23,7 @@ import { logoutCmd } from "./commands/logout.js";
 import { logtimeCmd } from "./commands/logtime.js";
 import { uninstallCmd } from "./commands/uninstall.js";
 import { userCmd } from "./commands/user.js";
+import { registerCompletionCommand } from "./completion.js";
 
 // Read the version from package.json so it can never drift from the
 // published version. From dist/cli.js this resolves to ../package.json,
@@ -124,6 +125,8 @@ friends
   .description("Show which of your friends are currently active at the campus.")
   .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
   .action(friendsOnlineCmd);
+
+registerCompletionCommand(program);
 
 program.parseAsync(process.argv).catch((e: unknown) => {
   process.stderr.write(String(e instanceof Error ? e.message : e) + "\n");
