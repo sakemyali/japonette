@@ -94,6 +94,10 @@ japonette friends                     # which friends are at the campus right no
 japonette friends list                # show your watchlist
 japonette friends add <login>
 japonette friends remove <login>
+
+# Shell
+japonette help                        # grouped overview of all commands
+japonette completion <shell>          # tab-completion for bash/zsh/fish (see below)
 ```
 
 `japonette help` (or `japonette --help`) shows a grouped overview of the
