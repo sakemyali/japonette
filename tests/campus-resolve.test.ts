@@ -81,9 +81,6 @@ describe("resolveCampus precedence (flag > env > default)", () => {
     await expect(resolveCampus(undefined)).rejects.toThrow(/no campus provided/);
   });
 
-  it("throws for an unknown slug", async () => {
-    await seedDirectory();
-    const { resolveCampus } = await import("../src/commands/campus.ts");
-    await expect(resolveCampus("atlantis")).rejects.toThrow(/unknown campus slug/);
-  });
+  // Note: the unknown-slug case now triggers a self-heal refetch, so it's
+  // covered in campus-cache.test.ts (which mocks the network) rather than here.
 });
