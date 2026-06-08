@@ -70,9 +70,8 @@ const campus = program
   .action(campusCurrentCmd);
 campus
   .command("list")
-  .option("--refresh", "bypass the local cache", false)
-  .description("List all campuses (cached locally for fast reuse).")
-  .action((opts: { refresh: boolean }) => campusListCmd(opts.refresh));
+  .description("List all campuses (fetched live; refreshes the local cache).")
+  .action(() => campusListCmd());
 campus
   .command("set <slug>")
   .description("Set the default campus used by commands that take --campus.")
