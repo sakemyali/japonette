@@ -104,9 +104,23 @@ program
   .option("--no-occupancy", "skip the live API call; render an empty map")
   .action(clusterCmd);
 
+// Bare `friends` runs the daily action — who's online — and the watchlist is
+// managed through explicit verbs. `friends online` is kept as an explicit
+// alias of the bare command.
 const friends = program
   .command("friends")
-  .description("Local friends watchlist (stored on this machine only).");
+  .description("Which of your friends are at the campus right now.")
+  .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
+  .action(friendsOnlineCmd);
+friends
+  .command("online")
+  .description("Explicit alias of `friends` — which friends are at the campus.")
+  .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
+  .action(friendsOnlineCmd);
+friends
+  .command("list")
+  .description("Show all friends in your local watchlist.")
+  .action(friendsListCmd);
 friends
   .command("add <login>")
   .description("Validate the login against the API, then append it to the local list.")
@@ -115,15 +129,6 @@ friends
   .command("remove <login>")
   .description("Remove a login from your local friends list.")
   .action(friendsRemoveCmd);
-friends
-  .command("list")
-  .description("Show all friends in your local list.")
-  .action(friendsListCmd);
-friends
-  .command("online")
-  .description("Show which of your friends are currently active at the campus.")
-  .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
-  .action(friendsOnlineCmd);
 
 program.parseAsync(process.argv).catch((e: unknown) => {
   process.stderr.write(String(e instanceof Error ? e.message : e) + "\n");
