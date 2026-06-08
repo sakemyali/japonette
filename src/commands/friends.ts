@@ -10,7 +10,8 @@ import {
   saveFriends,
 } from "../config.js";
 import { err, friendsOnlineTable, friendsTable, withSpinner } from "../render.js";
-import { fetchActiveLocations, resolveCampus } from "./active.js";
+import { fetchActiveLocations } from "./active.js";
+import { resolveCampus } from "./campus.js";
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);

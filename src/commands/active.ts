@@ -1,8 +1,7 @@
 import { AuthError } from "../auth.js";
 import { ApiError, paginate } from "../client.js";
-import { loadConfig } from "../config.js";
 import { activeTable, err, withSpinner } from "../render.js";
-import { resolveCampusId } from "./campus.js";
+import { resolveCampus } from "./campus.js";
 
 export async function fetchActiveLocations(
   campusId: number,
@@ -18,23 +17,6 @@ export async function fetchActiveLocations(
     if (out.length >= limit) break;
   }
   return out;
-}
-
-export async function resolveCampus(
-  slug: string | undefined,
-): Promise<{ slug: string; id: number }> {
-  const cfg = loadConfig();
-  const chosen = (slug || cfg.defaultCampusSlug || "").trim().toLowerCase();
-  if (!chosen) {
-    throw new Error(
-      "no campus provided and no default set. Try `japonette campus set <slug>`.",
-    );
-  }
-  const id = await resolveCampusId(chosen);
-  if (id === null) {
-    throw new Error(`unknown campus slug: ${chosen}. Try \`japonette campus list\`.`);
-  }
-  return { slug: chosen, id };
 }
 
 export async function activeCmd(opts: {

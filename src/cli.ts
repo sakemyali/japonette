@@ -18,11 +18,11 @@ import {
   friendsOnlineCmd,
   friendsRemoveCmd,
 } from "./commands/friends.js";
-import { loginCmd, whoamiCmd } from "./commands/login.js";
+import { loginCmd } from "./commands/login.js";
 import { logoutCmd } from "./commands/logout.js";
 import { logtimeCmd } from "./commands/logtime.js";
 import { uninstallCmd } from "./commands/uninstall.js";
-import { userCmd } from "./commands/user.js";
+import { meCmd, userCmd } from "./commands/user.js";
 import { registerCompletionCommand } from "./completion.js";
 
 // Read the version from package.json so it can never drift from the
@@ -56,35 +56,39 @@ program
   .action(uninstallCmd);
 
 program
-  .command("whoami")
-  .description("Verify the cached token by hitting /v2/oauth/token/info.")
-  .action(whoamiCmd);
+  .command("me")
+  .description("Your own profile — identity + live location (cluster map if online).")
+  .option("--info", "also show the academic profile (cursus, piscine, campus, pool)")
+  .action((opts: { info?: boolean }) => meCmd(opts));
 
 program
   .command("user <login>")
-  .description("Look up a 42 user.")
-  .action(userCmd);
+  .description("Look up a 42 user — identity + live location (cluster map if online).")
+  .option("--info", "also show the academic profile (cursus, piscine, campus, pool)")
+  .action((login: string, opts: { info?: boolean }) => userCmd(login, opts));
 
 const campus = program
   .command("campus")
-  .description("Show the default campus (auto-detected on first run).")
-  .action(campusCurrentCmd);
-campus
-  .command("list")
-  .option("--refresh", "bypass the local cache", false)
-  .description("List all campuses (cached locally for fast reuse).")
-  .action((opts: { refresh: boolean }) => campusListCmd(opts.refresh));
-campus
-  .command("set <slug>")
-  .description("Set the default campus used by commands that take --campus.")
-  .action(campusSetCmd);
-
-program
-  .command("active")
-  .description("Who's currently logged in at the campus.")
+  .description("Who's at your campus right now.")
   .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
   .option("-n, --limit <n>", "max rows to show", "50")
-  .action(activeCmd);
+  .action((opts: { campus?: string; limit?: string }) => activeCmd(opts));
+campus
+  .command("online")
+  .description("Explicit alias of `campus` — who's at the campus now.")
+  .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
+  .option("-n, --limit <n>", "max rows to show", "50")
+  .action((opts: { campus?: string; limit?: string }) => activeCmd(opts));
+campus
+  .command("list")
+  .description("List all campuses (fetched live; refreshes the local cache).")
+  .action(() => campusListCmd());
+campus
+  .command("set [slug]")
+  .description("Show your default campus, or set it when given a slug.")
+  .action((slug: string | undefined) =>
+    slug ? campusSetCmd(slug) : campusCurrentCmd(),
+  );
 
 program
   .command("logtime [login]")
@@ -96,18 +100,28 @@ program
   );
 
 program
-  .command("cluster")
-  .description("ASCII map of a campus cluster with live occupancy.")
+  .command("cluster [id]")
+  .description("List the campus's clusters (occupancy + friends), or open one's map by name or code.")
   .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
-  .option("--name <cluster>", "cluster file name (e.g. c1)")
-  .option("-u, --user <login>", "highlight this user's seat with X (auto-picks cluster)")
-  .option("--me", "highlight your own seat (shortcut for --user <your-login>)")
-  .option("--no-occupancy", "skip the live API call; render an empty map")
-  .action(clusterCmd);
+  .action((id: string | undefined, opts: { campus?: string }) => clusterCmd(id, opts));
 
+// Bare `friends` runs the daily action — who's online — and the watchlist is
+// managed through explicit verbs. `friends online` is kept as an explicit
+// alias of the bare command.
 const friends = program
   .command("friends")
-  .description("Local friends watchlist (stored on this machine only).");
+  .description("Which of your friends are at the campus right now.")
+  .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
+  .action(friendsOnlineCmd);
+friends
+  .command("online")
+  .description("Explicit alias of `friends` — which friends are at the campus.")
+  .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
+  .action(friendsOnlineCmd);
+friends
+  .command("list")
+  .description("Show all friends in your local watchlist.")
+  .action(friendsListCmd);
 friends
   .command("add <login>")
   .description("Validate the login against the API, then append it to the local list.")
@@ -116,15 +130,6 @@ friends
   .command("remove <login>")
   .description("Remove a login from your local friends list.")
   .action(friendsRemoveCmd);
-friends
-  .command("list")
-  .description("Show all friends in your local list.")
-  .action(friendsListCmd);
-friends
-  .command("online")
-  .description("Show which of your friends are currently active at the campus.")
-  .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
-  .action(friendsOnlineCmd);
 
 registerCompletionCommand(program);
 
