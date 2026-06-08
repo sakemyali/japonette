@@ -9,7 +9,8 @@ import { AuthError } from "../auth.js";
 import { apiGet, ApiError } from "../client.js";
 import { CONFIG_DIR } from "../config.js";
 import { err, fmtDuration, fmtTime, withSpinner } from "../render.js";
-import { fetchActiveLocations, resolveCampus } from "./active.js";
+import { fetchActiveLocations } from "./active.js";
+import { resolveCampus } from "./campus.js";
 
 interface ClusterFile {
   name: string;

@@ -42,6 +42,28 @@ export async function resolveCampusId(slug: string): Promise<number | null> {
   return match ? Number(match.id) : null;
 }
 
+// The single campus resolver. Precedence: explicit --campus flag, then the
+// JAPONETTE_CAMPUS env var, then the saved default. Every campus-scoped
+// command (and, later, the TUI) goes through this — defined once, here.
+export async function resolveCampus(
+  slug: string | undefined,
+): Promise<{ slug: string; id: number }> {
+  const cfg = loadConfig();
+  const chosen = (slug || process.env.JAPONETTE_CAMPUS || cfg.defaultCampusSlug || "")
+    .trim()
+    .toLowerCase();
+  if (!chosen) {
+    throw new Error(
+      "no campus provided and no default set. Try `japonette campus set <slug>`.",
+    );
+  }
+  const id = await resolveCampusId(chosen);
+  if (id === null) {
+    throw new Error(`unknown campus slug: ${chosen}. Try \`japonette campus list\`.`);
+  }
+  return { slug: chosen, id };
+}
+
 export async function campusCurrentCmd(): Promise<void> {
   try {
     const cfg = loadConfig();
