@@ -81,9 +81,9 @@ export function primaryCampus(u: any): { id: number; slug: string } | null {
   };
 }
 
-// Presence-first user card: identity + live status by default. `info` appends
-// the academic profile (the `ls -l` idiom — more detail, same card).
-export function userCard(u: any, opts: { info?: boolean } = {}): void {
+// Presence-first user card as an array of lines (so callers can place content
+// beside it — e.g. a cluster legend in the empty space to the right).
+export function userCardLines(u: any, opts: { info?: boolean } = {}): string[] {
   const status = u.location
     ? kleur.green("online") + kleur.dim(" — ") + u.location
     : kleur.dim("offline");
@@ -116,7 +116,13 @@ export function userCard(u: any, opts: { info?: boolean } = {}): void {
       [kleur.cyan("pool"), `${u.pool_month ?? "-"} ${u.pool_year ?? "-"}`],
     );
   }
-  console.log(t.toString());
+  return t.toString().split("\n");
+}
+
+// Presence-first user card: identity + live status by default. `info` appends
+// the academic profile (the `ls -l` idiom — more detail, same card).
+export function userCard(u: any, opts: { info?: boolean } = {}): void {
+  console.log(userCardLines(u, opts).join("\n"));
 }
 
 export function campusCard(c: any, slug: string, isDefault: boolean): void {
