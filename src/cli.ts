@@ -68,23 +68,26 @@ program
 
 const campus = program
   .command("campus")
-  .description("Show the default campus (auto-detected on first run).")
-  .action(campusCurrentCmd);
+  .description("Who's at your campus right now.")
+  .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
+  .option("-n, --limit <n>", "max rows to show", "50")
+  .action((opts: { campus?: string; limit?: string }) => activeCmd(opts));
+campus
+  .command("online")
+  .description("Explicit alias of `campus` — who's at the campus now.")
+  .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
+  .option("-n, --limit <n>", "max rows to show", "50")
+  .action((opts: { campus?: string; limit?: string }) => activeCmd(opts));
 campus
   .command("list")
   .description("List all campuses (fetched live; refreshes the local cache).")
   .action(() => campusListCmd());
 campus
-  .command("set <slug>")
-  .description("Set the default campus used by commands that take --campus.")
-  .action(campusSetCmd);
-
-program
-  .command("active")
-  .description("Who's currently logged in at the campus.")
-  .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
-  .option("-n, --limit <n>", "max rows to show", "50")
-  .action(activeCmd);
+  .command("set [slug]")
+  .description("Show your default campus, or set it when given a slug.")
+  .action((slug: string | undefined) =>
+    slug ? campusSetCmd(slug) : campusCurrentCmd(),
+  );
 
 program
   .command("logtime [login]")
