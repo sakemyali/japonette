@@ -22,7 +22,8 @@ describe("resolveCampus precedence (flag > env > default)", () => {
   });
 
   afterEach(() => {
-    process.env.HOME = origHome;
+    if (origHome === undefined) delete process.env.HOME;
+    else process.env.HOME = origHome;
     if (origEnvCampus === undefined) delete process.env.JAPONETTE_CAMPUS;
     else process.env.JAPONETTE_CAMPUS = origEnvCampus;
     rmSync(tmp, { recursive: true, force: true });
@@ -57,6 +58,20 @@ describe("resolveCampus precedence (flag > env > default)", () => {
     process.env.JAPONETTE_CAMPUS = "tokyo";
     const { resolveCampus } = await import("../src/commands/campus.ts");
     expect(await resolveCampus("seoul")).toEqual({ slug: "seoul", id: 29 });
+  });
+
+  it("treats a whitespace-only flag as not provided and falls through", async () => {
+    await seedDirectory();
+    process.env.JAPONETTE_CAMPUS = "tokyo";
+    const { resolveCampus } = await import("../src/commands/campus.ts");
+    expect(await resolveCampus("   ")).toEqual({ slug: "tokyo", id: 26 });
+  });
+
+  it("treats a whitespace-only env var as not provided and uses the default", async () => {
+    await seedDirectory();
+    process.env.JAPONETTE_CAMPUS = "   ";
+    const { resolveCampus } = await import("../src/commands/campus.ts");
+    expect(await resolveCampus(undefined)).toEqual({ slug: "paris", id: 1 });
   });
 
   it("throws when nothing resolves a campus", async () => {

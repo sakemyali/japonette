@@ -49,9 +49,12 @@ export async function resolveCampus(
   slug: string | undefined,
 ): Promise<{ slug: string; id: number }> {
   const cfg = loadConfig();
-  const chosen = (slug || process.env.JAPONETTE_CAMPUS || cfg.defaultCampusSlug || "")
-    .trim()
-    .toLowerCase();
+  // Pick the first candidate that has a non-blank value, so a whitespace-only
+  // flag or env var falls through to the next source instead of blocking it.
+  const candidate = [slug, process.env.JAPONETTE_CAMPUS, cfg.defaultCampusSlug].find(
+    (c) => c !== undefined && c.trim() !== "",
+  );
+  const chosen = (candidate ?? "").trim().toLowerCase();
   if (!chosen) {
     throw new Error(
       "no campus provided and no default set. Try `japonette campus set <slug>`.",
