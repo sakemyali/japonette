@@ -61,8 +61,7 @@ export function loadClusterFile(campusSlug: string, name: string): ClusterFile |
       validateClusterFile(raw, path);
       return raw as ClusterFile;
     } catch (e) {
-      err(`failed to read ${path}: ${(e as Error).message}`);
-      process.exit(1);
+      throw new Error(`failed to read ${path}: ${(e as Error).message}`);
     }
   }
   return null;
