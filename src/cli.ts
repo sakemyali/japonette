@@ -21,6 +21,7 @@ import {
 import { loginCmd } from "./commands/login.js";
 import { logoutCmd } from "./commands/logout.js";
 import { logtimeCmd } from "./commands/logtime.js";
+import { tuiCmd } from "./commands/tui.js";
 import { uninstallCmd } from "./commands/uninstall.js";
 import { meCmd, userCmd } from "./commands/user.js";
 import { registerCompletionCommand } from "./completion.js";
@@ -108,6 +109,12 @@ program
   .description("List the campus's clusters (occupancy + friends), or open one's map by name or code.")
   .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
   .action((id: string | undefined, opts: { campus?: string }) => clusterCmd(id, opts));
+
+program
+  .command("tui")
+  .description("Interactive live dashboard: clusters, friends, your stats. Mouse + keyboard.")
+  .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
+  .action((opts: { campus?: string }) => tuiCmd(opts));
 
 // Bare `friends` runs the daily action — who's online — and the watchlist is
 // managed through explicit verbs. `friends online` is kept as an explicit

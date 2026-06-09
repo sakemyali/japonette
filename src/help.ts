@@ -30,6 +30,7 @@ export const COMMAND_GROUPS: HelpGroup[] = [
       { name: "campus list", summary: "all campuses + their slugs" },
       { name: "campus set [slug]", summary: "show or set your default campus" },
       { name: "cluster [id]", summary: "cluster occupancy index, or one map" },
+      { name: "tui", summary: "interactive live dashboard (mouse + keyboard)" },
     ],
   },
   {
