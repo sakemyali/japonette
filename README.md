@@ -23,6 +23,7 @@ writes to 42's servers.
 ```bash
 npm install -g japonette        # install (needs Node ≥ 18)
 japonette login                 # browser-based 42 OAuth, ~10 seconds
+japonette campus set <slug>     # one-time: set your default campus (e.g. tokyo)
 japonette campus                # see who's at your campus right now
 ```
 
