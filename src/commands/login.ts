@@ -12,7 +12,7 @@ import {
 } from "../auth.js";
 import { apiGet, ApiError } from "../client.js";
 import { saveToken, type TokenCache } from "../config.js";
-import { err, userCard } from "../render.js";
+import { err } from "../render.js";
 
 const AUTHORIZE_URL = "https://api.intra.42.fr/oauth/authorize";
 const LISTEN_TIMEOUT_MS = 5 * 60 * 1000;
@@ -129,7 +129,7 @@ export async function loginCmd(): Promise<void> {
   } catch (e) {
     if (e instanceof ApiError || e instanceof AuthError) {
       err(
-        "Tokens stored, but /v2/me check failed: " + e.message + " — try `japonette whoami`",
+        "Tokens stored, but /v2/me check failed: " + e.message + " — try `japonette me`",
       );
       process.exit(1);
     }
@@ -228,31 +228,4 @@ async function awaitCallbackOnFreePort(nonce: string): Promise<{
       resolve({ port: address.port, result: resultPromise });
     });
   });
-}
-
-export async function whoamiCmd(): Promise<void> {
-  try {
-    const [info, me] = await Promise.all([
-      apiGet<any>("/v2/oauth/token/info"),
-      apiGet<any>("/v2/me"),
-    ]);
-
-    console.log(kleur.bold("Token"));
-    const scopes = info?.scopes ?? [];
-    console.log(`  scopes:     ${scopes.length ? scopes.join(", ") : "-"}`);
-    console.log(`  expires_in: ${info?.expires_in_seconds ?? "-"}s`);
-    if (info?.resource_owner_id) {
-      console.log(`  user_id:    ${info.resource_owner_id}`);
-    }
-
-    console.log("");
-    console.log(kleur.bold("You"));
-    userCard(me);
-  } catch (e) {
-    if (e instanceof AuthError || e instanceof ApiError) {
-      err(e.message);
-      process.exit(1);
-    }
-    throw e;
-  }
 }

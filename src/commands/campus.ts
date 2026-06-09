@@ -29,17 +29,56 @@ export async function fetchAllCampuses(): Promise<any[]> {
   return out;
 }
 
-export async function loadOrFetchCampuses(): Promise<any[]> {
-  const cached = loadCampuses();
-  if (cached) return cached;
+// Fetch the directory live and overwrite the local cache.
+export async function refreshCampuses(): Promise<any[]> {
   const fresh = await fetchAllCampuses();
   saveCampuses(fresh);
   return fresh;
 }
 
+export async function loadOrFetchCampuses(): Promise<any[]> {
+  return loadCampuses() ?? (await refreshCampuses());
+}
+
+// Resolve a slug to its campus id. The directory cache self-heals on a miss:
+// if the slug isn't found in a cached directory, the cache may be stale (a
+// campus added since we cached), so refetch once and retry. A null result
+// therefore means the slug genuinely doesn't exist; a network/API failure
+// during the refetch propagates as an error instead.
 export async function resolveCampusId(slug: string): Promise<number | null> {
-  const match = findBySlug(await loadOrFetchCampuses(), slug);
+  const cached = loadCampuses();
+  const list = cached ?? (await refreshCampuses());
+  let match = findBySlug(list, slug);
+  if (!match && cached) {
+    // We had a cache and missed — refetch once before giving up.
+    match = findBySlug(await refreshCampuses(), slug);
+  }
   return match ? Number(match.id) : null;
+}
+
+// The single campus resolver. Precedence: explicit --campus flag, then the
+// JAPONETTE_CAMPUS env var, then the saved default. Every campus-scoped
+// command (and, later, the TUI) goes through this — defined once, here.
+export async function resolveCampus(
+  slug: string | undefined,
+): Promise<{ slug: string; id: number }> {
+  const cfg = loadConfig();
+  // Pick the first candidate that has a non-blank value, so a whitespace-only
+  // flag or env var falls through to the next source instead of blocking it.
+  const candidate = [slug, process.env.JAPONETTE_CAMPUS, cfg.defaultCampusSlug].find(
+    (c) => c !== undefined && c.trim() !== "",
+  );
+  const chosen = (candidate ?? "").trim().toLowerCase();
+  if (!chosen) {
+    throw new Error(
+      "no campus provided and no default set. Try `japonette campus set <slug>`.",
+    );
+  }
+  const id = await resolveCampusId(chosen);
+  if (id === null) {
+    throw new Error(`unknown campus slug: ${chosen}. Try \`japonette campus list\`.`);
+  }
+  return { slug: chosen, id };
 }
 
 export async function campusCurrentCmd(): Promise<void> {
@@ -51,7 +90,7 @@ export async function campusCurrentCmd(): Promise<void> {
       const match = findBySlug(list, cfg.defaultCampusSlug);
       if (!match) {
         err(
-          `default campus slug "${cfg.defaultCampusSlug}" no longer matches any campus. Try \`japonette campus set <slug>\` or \`japonette campus list --refresh\`.`,
+          `default campus slug "${cfg.defaultCampusSlug}" no longer matches any campus. Try \`japonette campus set <slug>\` or \`japonette campus list\`.`,
         );
         process.exit(1);
       }
@@ -72,7 +111,7 @@ export async function campusCurrentCmd(): Promise<void> {
     const match = findById(list, primary.campus_id);
     if (!match) {
       err(
-        `could not resolve campus_id=${primary.campus_id} to a campus. Try \`japonette campus list --refresh\`.`,
+        `could not resolve campus_id=${primary.campus_id} to a campus. Try \`japonette campus list\`.`,
       );
       process.exit(1);
     }
@@ -95,15 +134,11 @@ export async function campusCurrentCmd(): Promise<void> {
   }
 }
 
-export async function campusListCmd(refresh = false): Promise<void> {
+export async function campusListCmd(): Promise<void> {
   try {
-    let rows: any[];
-    if (refresh) {
-      rows = await fetchAllCampuses();
-      saveCampuses(rows);
-    } else {
-      rows = await loadOrFetchCampuses();
-    }
+    // Listing the directory is the explicit "show me what's current" action, so
+    // it always fetches live and refreshes the cache as a side effect.
+    const rows = await refreshCampuses();
     rows.sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")));
     campusTable(rows);
   } catch (e) {
