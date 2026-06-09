@@ -1,0 +1,87 @@
+// Pure helpers for the `review` (evaluation slots) command: turning a friendly
+// `day` + `HH:MM-HH:MM` into a concrete begin/end interval, and folding the 42
+// API's 15-minute slot records back into human-readable windows. No I/O here so
+// the parsing and grouping can be unit-tested directly.
+
+export interface RawSlot {
+  id: number;
+  begin_at: string;
+  end_at: string;
+  scale_team?: unknown;
+}
+
+export interface SlotWindow {
+  begin: string; // ISO
+  end: string; // ISO
+  ids: number[];
+  booked: boolean;
+  bookedBy?: string; // login of the team being evaluated, when booked
+}
+
+// Resolve a `day` token to local midnight: "today", "tomorrow", or YYYY-MM-DD.
+function resolveDay(day: string, now: Date): Date {
+  const d = day.trim().toLowerCase();
+  if (d === "today") return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (d === "tomorrow")
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const m = d.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) {
+    throw new Error(`bad day "${day}" — use "today", "tomorrow", or YYYY-MM-DD`);
+  }
+  const [, y, mo, da] = m;
+  return new Date(Number(y), Number(mo) - 1, Number(da));
+}
+
+function atTime(base: Date, hh: number, mm: number): Date {
+  return new Date(base.getFullYear(), base.getMonth(), base.getDate(), hh, mm, 0, 0);
+}
+
+// Parse `day` + `HH:MM-HH:MM` into a local begin/end interval. Throws a friendly
+// Error on malformed input or a non-positive span. The caller converts to ISO.
+export function parseSlotRange(
+  day: string,
+  range: string,
+  now: Date = new Date(),
+): { begin: Date; end: Date } {
+  const base = resolveDay(day, now);
+  const m = range.trim().match(/^(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})$/);
+  if (!m) {
+    throw new Error(`bad range "${range}" — expected HH:MM-HH:MM, e.g. 14:00-16:00`);
+  }
+  const [, sh, sm, eh, em] = m;
+  const begin = atTime(base, Number(sh), Number(sm));
+  const end = atTime(base, Number(eh), Number(em));
+  if (end <= begin) throw new Error("end time must be after start time");
+  return { begin, end };
+}
+
+// The login of the team being evaluated on a booked slot, if discoverable.
+function bookedPeer(scaleTeam: unknown): string | undefined {
+  const st = scaleTeam as { correcteds?: { login?: string }[] } | null;
+  return st?.correcteds?.map((c) => c.login).filter(Boolean).join(", ") || undefined;
+}
+
+// Fold raw 15-minute slot records into windows. Contiguous *open* slots merge
+// into one window (so a 2h availability reads as one row); booked slots stay
+// separate, since each is a distinct correction. Input is sorted by begin.
+export function groupSlots(slots: RawSlot[]): SlotWindow[] {
+  const sorted = [...slots].sort((a, b) => a.begin_at.localeCompare(b.begin_at));
+  const windows: SlotWindow[] = [];
+  for (const s of sorted) {
+    const booked = s.scale_team != null;
+    const last = windows[windows.length - 1];
+    if (last && !booked && !last.booked && last.end === s.begin_at) {
+      last.end = s.end_at;
+      last.ids.push(s.id);
+      continue;
+    }
+    windows.push({
+      begin: s.begin_at,
+      end: s.end_at,
+      ids: [s.id],
+      booked,
+      bookedBy: booked ? bookedPeer(s.scale_team) : undefined,
+    });
+  }
+  return windows;
+}

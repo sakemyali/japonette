@@ -93,7 +93,9 @@ export async function loginCmd(): Promise<void> {
       client_id: workerCfg.uid,
       redirect_uri: workerCfg.redirect_uri,
       response_type: "code",
-      scope: "public",
+      // `projects` is required to read and manage evaluation slots
+      // (`/v2/slots`); `public` covers everything else.
+      scope: "public projects",
       state,
     }).toString();
 

@@ -247,6 +247,72 @@ export function logtimeTable(
   console.log(t.toString());
 }
 
+function fmtSpan(begin: string, end: string): string {
+  const ms = new Date(end).getTime() - new Date(begin).getTime();
+  return Number.isFinite(ms) ? fmtHM(Math.max(0, Math.floor(ms / 1000))) : "-";
+}
+
+// Your upcoming evaluation slots, one row per window. Open windows show their
+// underlying 15-min slot ids (for `review cancel`); booked ones name who took
+// them.
+export function slotsTable(
+  windows: { begin: string; end: string; ids: number[]; booked: boolean; bookedBy?: string }[],
+): void {
+  if (windows.length === 0) {
+    console.log(
+      kleur.dim("no upcoming slots — open one with `japonette review open <day> <HH:MM-HH:MM>`"),
+    );
+    return;
+  }
+  const t = new Table({
+    head: ["when", "duration", "status", "ids"].map((s) => kleur.bold(s)),
+    chars: TABLE_CHARS,
+    colAligns: ["left", "right", "left", "left"],
+  });
+  for (const w of windows) {
+    const status = w.booked
+      ? kleur.green("booked") + (w.bookedBy ? kleur.dim(` ${w.bookedBy}`) : "")
+      : kleur.dim("open");
+    t.push([
+      `${fmtTime(w.begin)} → ${fmtTime(w.end).slice(11)}`,
+      fmtSpan(w.begin, w.end),
+      status,
+      kleur.dim(w.ids.join(",")),
+    ]);
+  }
+  console.log(t.toString());
+}
+
+// Your upcoming evaluations from /v2/me/scale_teams, in both directions — slots
+// of yours that got filled, plus any project you're being evaluated on.
+export function scaleTeamsTable(teams: any[]): void {
+  const now = Date.now();
+  const upcoming = teams
+    .filter((t) => t.begin_at && new Date(t.begin_at).getTime() + 3_600_000 > now)
+    .sort((a, b) => String(a.begin_at).localeCompare(String(b.begin_at)));
+  if (upcoming.length === 0) {
+    console.log(kleur.dim("no upcoming evaluations"));
+    return;
+  }
+  const t = new Table({
+    head: ["when", "team", "corrector", "correcteds"].map((s) => kleur.bold(s)),
+    chars: TABLE_CHARS,
+  });
+  for (const st of upcoming) {
+    const correcteds = (st.correcteds ?? [])
+      .map((c: any) => c?.login)
+      .filter(Boolean)
+      .join(", ");
+    t.push([
+      fmtTime(st.begin_at),
+      st.team?.name ?? "-",
+      kleur.cyan(st.corrector?.login ?? "-"),
+      correcteds || "-",
+    ]);
+  }
+  console.log(t.toString());
+}
+
 export function friendsOnlineTable(active: any[], offline: string[]): void {
   if (active.length === 0) {
     console.log(kleur.dim("no friends active"));

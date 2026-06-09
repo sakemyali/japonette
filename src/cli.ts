@@ -21,6 +21,12 @@ import {
 import { loginCmd } from "./commands/login.js";
 import { logoutCmd } from "./commands/logout.js";
 import { logtimeCmd } from "./commands/logtime.js";
+import {
+  reviewBookedCmd,
+  reviewCancelCmd,
+  reviewOpenCmd,
+  reviewSlotsCmd,
+} from "./commands/review.js";
 import { uninstallCmd } from "./commands/uninstall.js";
 import { meCmd, userCmd } from "./commands/user.js";
 import { registerCompletionCommand } from "./completion.js";
@@ -134,6 +140,30 @@ friends
   .command("remove <login>")
   .description("Remove a login from your local friends list.")
   .action(friendsRemoveCmd);
+
+// Peer-evaluation availability slots. You (the evaluator) open slots when
+// you're free; people book them to get their project evaluated. Bare `review`
+// shows your upcoming slots.
+const review = program
+  .command("review")
+  .description("Your evaluation slots — open when you're free to correct.")
+  .action(reviewSlotsCmd);
+review
+  .command("open <day> <range>")
+  .description('Open a slot to evaluate, e.g. `review open today 14:00-16:00`.')
+  .action((day: string, range: string) => reviewOpenCmd(day, range));
+review
+  .command("slots")
+  .description("Explicit alias of `review` — your upcoming slots (open + booked).")
+  .action(reviewSlotsCmd);
+review
+  .command("cancel <id>")
+  .description("Cancel one open slot by id (shown in `review slots`).")
+  .action((id: string) => reviewCancelCmd(id));
+review
+  .command("booked")
+  .description("Evaluations on your calendar — slots that got filled, both directions.")
+  .action(reviewBookedCmd);
 
 registerCompletionCommand(program);
 

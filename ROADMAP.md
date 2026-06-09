@@ -10,6 +10,12 @@ first if it's a larger one so we can align on shape.
   *(0.2.0)*.
 - [x] One-line install for 42 cluster machines without sudo —
   [`scripts/cluster-install.sh`](scripts/cluster-install.sh) *(0.2.0)*.
+- [x] `japonette review open <day> <range>` — open an evaluation slot when
+  you're free to correct (`POST /v2/slots`); `review` / `review slots` list
+  them, `review cancel <id>` withdraws one. Needs the `projects` OAuth scope
+  *(sakemyali)*.
+- [x] `japonette review booked` — your booked evaluations, both directions
+  (`GET /v2/me/scale_teams`) *(sakemyali)*.
 
 ## Command ergonomics *(priority)*
 
@@ -30,11 +36,10 @@ remember.
 
 ## Peer evaluations & group projects *(42-specific)*
 
-- [ ] `japonette review open` — publish a review slot for one of your
-  projects.
-- [ ] `japonette review book <project>` — browse open slots on a specific
-  project and book one.
-- [ ] `japonette review list` — see your upcoming reviews (both directions).
+- [ ] ~~`japonette review book <project>`~~ — **not feasible via the public
+  API.** Booking a correction is a web-frontend action; `scale_teams` creation
+  is tutor-gated, and there's no public feed of bookable slots per project (the
+  community slot-watchers scrape the intranet with a session cookie).
 - [ ] `japonette team find <project>` — for group projects (`minishell`,
   `philosophers`, …) show people at your campus still looking for a
   teammate.

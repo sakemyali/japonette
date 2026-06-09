@@ -1,0 +1,91 @@
+import { describe, expect, it } from "vitest";
+
+import { groupSlots, parseSlotRange, type RawSlot } from "../src/slots.ts";
+
+describe("parseSlotRange", () => {
+  const now = new Date(2026, 5, 9, 10, 0, 0); // 2026-06-09 10:00 local
+
+  it("parses an explicit date + range into a local interval", () => {
+    const { begin, end } = parseSlotRange("2026-06-10", "14:00-16:00", now);
+    expect(begin.getFullYear()).toBe(2026);
+    expect(begin.getMonth()).toBe(5);
+    expect(begin.getDate()).toBe(10);
+    expect(begin.getHours()).toBe(14);
+    expect(end.getHours()).toBe(16);
+  });
+
+  it("resolves today and tomorrow relative to now", () => {
+    expect(parseSlotRange("today", "09:00-10:00", now).begin.getDate()).toBe(9);
+    expect(parseSlotRange("tomorrow", "09:00-10:00", now).begin.getDate()).toBe(10);
+  });
+
+  it("accepts an en-dash separator", () => {
+    const { end } = parseSlotRange("today", "09:00–11:30", now);
+    expect(end.getHours()).toBe(11);
+    expect(end.getMinutes()).toBe(30);
+  });
+
+  it("rejects a malformed day", () => {
+    expect(() => parseSlotRange("someday", "09:00-10:00", now)).toThrow(/bad day/);
+  });
+
+  it("rejects a malformed range", () => {
+    expect(() => parseSlotRange("today", "9am-11am", now)).toThrow(/bad range/);
+  });
+
+  it("rejects a non-positive span", () => {
+    expect(() => parseSlotRange("today", "16:00-14:00", now)).toThrow(/after start/);
+  });
+});
+
+describe("groupSlots", () => {
+  const slot = (id: number, begin: string, end: string, scale_team?: unknown): RawSlot => ({
+    id,
+    begin_at: begin,
+    end_at: end,
+    scale_team,
+  });
+
+  it("merges contiguous open slots into one window with all ids", () => {
+    const out = groupSlots([
+      slot(1, "2026-06-10T14:00:00Z", "2026-06-10T14:15:00Z"),
+      slot(2, "2026-06-10T14:15:00Z", "2026-06-10T14:30:00Z"),
+      slot(3, "2026-06-10T14:30:00Z", "2026-06-10T14:45:00Z"),
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      begin: "2026-06-10T14:00:00Z",
+      end: "2026-06-10T14:45:00Z",
+      ids: [1, 2, 3],
+      booked: false,
+    });
+  });
+
+  it("keeps a gap between non-contiguous open slots", () => {
+    const out = groupSlots([
+      slot(1, "2026-06-10T14:00:00Z", "2026-06-10T14:15:00Z"),
+      slot(2, "2026-06-10T16:00:00Z", "2026-06-10T16:15:00Z"),
+    ]);
+    expect(out).toHaveLength(2);
+  });
+
+  it("never merges a booked slot, and names who took it", () => {
+    const out = groupSlots([
+      slot(1, "2026-06-10T14:00:00Z", "2026-06-10T14:15:00Z"),
+      slot(2, "2026-06-10T14:15:00Z", "2026-06-10T14:30:00Z", {
+        correcteds: [{ login: "alice" }],
+      }),
+    ]);
+    expect(out).toHaveLength(2);
+    expect(out[1]).toMatchObject({ booked: true, bookedBy: "alice", ids: [2] });
+  });
+
+  it("sorts out-of-order input before grouping", () => {
+    const out = groupSlots([
+      slot(2, "2026-06-10T14:15:00Z", "2026-06-10T14:30:00Z"),
+      slot(1, "2026-06-10T14:00:00Z", "2026-06-10T14:15:00Z"),
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].ids).toEqual([1, 2]);
+  });
+});

@@ -49,6 +49,15 @@ export const COMMAND_GROUPS: HelpGroup[] = [
     ],
   },
   {
+    title: "Evaluations",
+    commands: [
+      { name: "review", summary: "your upcoming evaluation slots" },
+      { name: "review open <day> <range>", summary: "open a slot to evaluate" },
+      { name: "review cancel <id>", summary: "cancel an open slot" },
+      { name: "review booked", summary: "evaluations that got booked" },
+    ],
+  },
+  {
     title: "Shell",
     commands: [
       { name: "completion <shell>", summary: "print a bash/zsh/fish completion script" },

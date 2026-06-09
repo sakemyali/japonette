@@ -95,6 +95,12 @@ japonette friends list                # show your watchlist
 japonette friends add <login>
 japonette friends remove <login>
 
+# Evaluations (peer-correction slots — you open them when you're free to correct)
+japonette review                      # your upcoming slots, open vs. booked
+japonette review open today 14:00-16:00   # declare yourself available to evaluate
+japonette review cancel <id>          # cancel an open slot (id from `review`)
+japonette review booked               # evaluations that got booked, both directions
+
 # Shell
 japonette help                        # grouped overview of all commands
 japonette completion <shell>          # tab-completion for bash/zsh/fish (see below)
@@ -108,6 +114,10 @@ Commands that target a campus take `-c, --campus <slug>` and default to your
 saved campus. Set `JAPONETTE_CAMPUS` to override the default for a whole shell
 session without passing `-c` each time (precedence: `-c` flag → `$JAPONETTE_CAMPUS`
 → saved default).
+
+The `review` commands talk to the 42 slots API, which needs the `projects`
+OAuth scope. If you logged in before these landed, run `japonette login` once
+more to grant it — the CLI will tell you if a token is missing the scope.
 
 ## Shell completion
 
