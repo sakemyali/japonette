@@ -2,13 +2,18 @@ import { describe, expect, it } from "vitest";
 
 import {
   blackholeDays,
+  bucketDailySeconds,
   clusterRoster,
   computeStreak,
   durationToSeconds,
+  liveSessionSeconds,
   type Loc,
   logtimeSeconds,
+  monthToDateSeconds,
   soonScaleTeams,
   stepCarousel,
+  weeklyTotals,
+  ymd,
 } from "../src/tui/format.ts";
 
 describe("blackholeDays", () => {
@@ -55,6 +60,75 @@ describe("computeStreak", () => {
   });
   it("is 0 when nothing recent", () => {
     expect(computeStreak({ "2026-01-01": "05:00:00" }, now)).toBe(0);
+  });
+  it("a live session counts today as logged", () => {
+    const stats = { "2026-06-08": "02:00:00" }; // today absent (still seated)
+    expect(computeStreak(stats, now, 1800)).toBe(2);
+    expect(computeStreak({}, now, 1800)).toBe(1);
+  });
+});
+
+describe("weeklyTotals", () => {
+  const now = new Date(2026, 5, 10, 12); // wed 2026-06-10
+  it("buckets calendar weeks (mon-start), oldest first", () => {
+    const stats = {
+      "2026-06-09": 3600, // this week (mon jun 08)
+      "2026-06-08": 1800, // this week
+      "2026-06-07": 7200, // sunday → week of jun 01
+      "2026-05-31": 600, // sunday → week of may 25
+    };
+    const w = weeklyTotals(stats, 3, now);
+    expect(w.map((x) => ymd(x.start))).toEqual(["2026-05-25", "2026-06-01", "2026-06-08"]);
+    expect(w.map((x) => x.secs)).toEqual([600, 7200, 5400]);
+  });
+});
+
+describe("monthToDateSeconds", () => {
+  it("sums only the current calendar month", () => {
+    const now = new Date(2026, 5, 10);
+    expect(monthToDateSeconds({ "2026-06-09": 3600, "2026-05-31": 9999 }, now)).toBe(3600);
+  });
+});
+
+describe("bucketDailySeconds", () => {
+  // Build ISO strings from local components so the expected day keys (local
+  // time) hold in any timezone the tests run in.
+  const iso = (d: number, h: number, m = 0) => new Date(2026, 5, d, h, m).toISOString();
+  it("sums completed sessions per local day", () => {
+    const locs = [
+      { begin_at: iso(9, 10, 0), end_at: iso(9, 11, 24) },
+      { begin_at: iso(9, 13, 0), end_at: iso(9, 13, 45) },
+    ];
+    expect(bucketDailySeconds(locs)).toEqual({ "2026-06-09": (84 + 45) * 60 });
+  });
+  it("splits a session crossing midnight across both days", () => {
+    const locs = [{ begin_at: iso(9, 23, 0), end_at: iso(10, 1, 0) }];
+    expect(bucketDailySeconds(locs)).toEqual({ "2026-06-09": 3600, "2026-06-10": 3600 });
+  });
+  it("skips ongoing and malformed sessions", () => {
+    expect(
+      bucketDailySeconds([
+        { begin_at: iso(9, 10, 0), end_at: null }, // still seated
+        { begin_at: "junk", end_at: iso(9, 11, 0) },
+        { begin_at: iso(9, 12, 0), end_at: iso(9, 11, 0) }, // end before begin
+      ]),
+    ).toEqual({});
+  });
+});
+
+describe("liveSessionSeconds", () => {
+  const now = new Date("2026-06-09T12:00:00Z");
+  const active: Loc[] = [
+    { host: "c1r1p1", user: { login: "ada" }, begin_at: "2026-06-09T10:00:00Z" },
+    { host: "c1r1p2", user: { login: "grace" }, begin_at: "2026-06-09T11:30:00Z" },
+  ];
+  it("returns seconds since my begin_at", () => {
+    expect(liveSessionSeconds(active, "ada", now)).toBe(2 * 3600);
+  });
+  it("is 0 when I'm not online", () => {
+    expect(liveSessionSeconds(active, "linus", now)).toBe(0);
+    expect(liveSessionSeconds([], "ada", now)).toBe(0);
+    expect(liveSessionSeconds(active, undefined, now)).toBe(0);
   });
 });
 

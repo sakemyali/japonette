@@ -62,9 +62,9 @@ program
 
 program
   .command("me")
-  .description("Your own profile — identity + live location (cluster map if online).")
-  .option("--info", "also show the academic profile (cursus, piscine, campus, pool)")
-  .action((opts: { info?: boolean }) => meCmd(opts));
+  .description("Your own profile — full academic card + live location (cluster map if online).")
+  .option("--brief", "only identity + live status (skip the academic card)")
+  .action((opts: { brief?: boolean }) => meCmd({ info: !opts.brief }));
 
 program
   .command("user <login>")
@@ -97,10 +97,11 @@ campus
 
 program
   .command("logtime [login]")
-  .description("Per-month logtime totals for a user (defaults to you).")
-  .option("-d, --days <n>", "range as days back from today (mutually exclusive with --months)")
-  .option("-m, --months <n>", "range as months back from today (default: 4)")
-  .action((login: string | undefined, opts: { days?: string; months?: string }) =>
+  .description("Logtime totals for a user (defaults to you) — monthly, weekly, or daily.")
+  .option("-d, --days <n>", "one row per day, last <n> days")
+  .option("-w, --weeks <n>", "one row per calendar week (mon–sun), last <n> weeks")
+  .option("-m, --months <n>", "one row per month, last <n> months (default: 4)")
+  .action((login: string | undefined, opts: { days?: string; weeks?: string; months?: string }) =>
     logtimeCmd(login, opts),
   );
 

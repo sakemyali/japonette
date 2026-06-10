@@ -108,12 +108,16 @@ export function userCardLines(u: any, opts: { info?: boolean } = {}): string[] {
         ? `${cu.level.toFixed(2)} (${cu.cursus?.slug ?? "?"})`
         : "-";
 
+    const bh = main?.blackholed_at ? String(main.blackholed_at).slice(0, 10) : "-";
     t.push(
       [kleur.cyan("email"), u.email ?? "-"],
       [kleur.cyan("cursus"), fmtLevel(main)],
       [kleur.cyan("piscine"), fmtLevel(piscine)],
+      [kleur.cyan("blackhole"), bh],
       [kleur.cyan("campus"), primaryCampus(u)?.slug ?? "-"],
       [kleur.cyan("pool"), `${u.pool_month ?? "-"} ${u.pool_year ?? "-"}`],
+      [kleur.cyan("eval pts"), String(u.correction_point ?? "-")],
+      [kleur.cyan("wallet"), String(u.wallet ?? "-")],
     );
   }
   return t.toString().split("\n");
@@ -220,9 +224,10 @@ function fmtHM(totalSeconds: number): string {
 }
 
 export function logtimeTable(
-  buckets: { ym: string; seconds: number }[],
+  buckets: { label: string; seconds: number }[],
   title: string,
   totalDays: number,
+  unit = "month",
 ): void {
   console.log(kleur.bold(title));
   if (buckets.length === 0) {
@@ -236,12 +241,12 @@ export function logtimeTable(
     return "█".repeat(filled) + " ".repeat(BAR_WIDTH - filled);
   };
   const t = new Table({
-    head: ["month", "total", ""].map((s) => kleur.bold(s)),
+    head: [unit, "total", ""].map((s) => kleur.bold(s)),
     chars: TABLE_CHARS,
     colAligns: ["left", "right", "left"],
   });
   for (const b of buckets) {
-    t.push([b.ym, fmtHM(b.seconds), bar(b.seconds)]);
+    t.push([b.label, fmtHM(b.seconds), bar(b.seconds)]);
   }
   const grandTotal = buckets.reduce((a, b) => a + b.seconds, 0);
   const avgPerDay = totalDays > 0 ? Math.floor(grandTotal / totalDays) : 0;

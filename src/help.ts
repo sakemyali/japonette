@@ -37,7 +37,7 @@ export const COMMAND_GROUPS: HelpGroup[] = [
     title: "People",
     commands: [
       { name: "user <login>", summary: "look up a 42 user" },
-      { name: "logtime [login]", summary: "per-month logtime totals" },
+      { name: "logtime [login]", summary: "logtime totals — monthly, weekly (-w), daily (-d)" },
     ],
   },
   {

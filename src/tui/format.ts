@@ -30,24 +30,75 @@ export function durationToSeconds(v: unknown): number {
   return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
 }
 
-function ymd(d: Date): string {
+export function ymd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
     d.getDate(),
   ).padStart(2, "0")}`;
 }
 
+// Day-keyed seconds from raw location sessions, the local-time equivalent of
+// what /v2/users/:id/locations_stats would return (that endpoint 403s for
+// plain tokens). Sessions crossing midnight are split across both days.
+// Ongoing sessions (no end_at) count up to `ongoingUntil` when given (CLI
+// tables), and are skipped otherwise (the TUI layers the live session on
+// separately so it can tick with the faster occupancy refresh).
+export function bucketDailySeconds(
+  locations: { begin_at?: string | null; end_at?: string | null }[],
+  ongoingUntil?: Date,
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const loc of locations ?? []) {
+    if (!loc?.begin_at) continue;
+    const begin = new Date(loc.begin_at).getTime();
+    const end = loc.end_at
+      ? new Date(loc.end_at).getTime()
+      : (ongoingUntil?.getTime() ?? NaN);
+    if (Number.isNaN(begin) || Number.isNaN(end) || end <= begin) continue;
+    let t = begin;
+    while (t < end) {
+      const d = new Date(t);
+      const nextMidnight = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+      const hi = Math.min(end, nextMidnight);
+      const key = ymd(d);
+      out[key] = (out[key] ?? 0) + Math.floor((hi - t) / 1000);
+      t = hi;
+    }
+  }
+  return out;
+}
+
+// locations_stats only counts *completed* sessions — while you're seated, the
+// ongoing one isn't in there yet (it lands after logout), so "today" reads 0h
+// all day. This recovers the live session from the already-fetched active
+// occupancy list: seconds since my begin_at, or 0 if I'm not online.
+export function liveSessionSeconds(
+  active: Loc[],
+  login: string | null | undefined,
+  now: Date = new Date(),
+): number {
+  if (!login) return 0;
+  const mine = (active ?? []).find((l) => l.user?.login === login && l.begin_at);
+  if (!mine?.begin_at) return 0;
+  const t = new Date(mine.begin_at).getTime();
+  if (Number.isNaN(t)) return 0;
+  return Math.max(0, Math.floor((now.getTime() - t) / 1000));
+}
+
 // Consecutive-day logtime streak from locations_stats ({ "YYYY-MM-DD": dur }).
 // Counts back from today; if today isn't logged yet, the streak still stands
-// from yesterday (so it isn't "broken" before end of day).
+// from yesterday (so it isn't "broken" before end of day). `liveSeconds` lets
+// an ongoing session (absent from locations_stats) count today as logged.
 export function computeStreak(
   stats: Record<string, unknown>,
   now: Date = new Date(),
+  liveSeconds = 0,
 ): number {
   const logged = new Set<string>();
   for (const [day, v] of Object.entries(stats ?? {})) {
     if (durationToSeconds(v) > 0) logged.add(day);
   }
   const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (liveSeconds > 0) logged.add(ymd(cursor));
   if (!logged.has(ymd(cursor))) cursor.setDate(cursor.getDate() - 1);
   let streak = 0;
   while (logged.has(ymd(cursor))) {
@@ -68,6 +119,48 @@ export function logtimeSeconds(
   for (let i = 0; i < days; i++) {
     total += durationToSeconds((stats ?? {})[ymd(cursor)]);
     cursor.setDate(cursor.getDate() - 1);
+  }
+  return total;
+}
+
+// Monday 00:00 of the calendar week containing `d` (local time).
+export function startOfWeek(d: Date): Date {
+  const sinceMonday = (d.getDay() + 6) % 7;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() - sinceMonday);
+}
+
+// Totals for the last `weeks` calendar weeks (Mon–Sun, local), oldest first.
+// The last entry is the current — still running — week.
+export function weeklyTotals(
+  stats: Record<string, unknown>,
+  weeks: number,
+  now: Date = new Date(),
+): { start: Date; secs: number }[] {
+  const out: { start: Date; secs: number }[] = [];
+  const monday = startOfWeek(now);
+  for (let i = weeks - 1; i >= 0; i--) {
+    const start = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() - i * 7);
+    let secs = 0;
+    const cursor = new Date(start);
+    for (let d = 0; d < 7; d++) {
+      secs += durationToSeconds((stats ?? {})[ymd(cursor)]);
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    out.push({ start, secs });
+  }
+  return out;
+}
+
+// Total seconds logged in the current calendar month (local time) — what
+// "month" means on the intra, unlike a rolling 30-day window.
+export function monthToDateSeconds(
+  stats: Record<string, unknown>,
+  now: Date = new Date(),
+): number {
+  const prefix = ymd(now).slice(0, 8); // "YYYY-MM-"
+  let total = 0;
+  for (const [k, v] of Object.entries(stats ?? {})) {
+    if (k.startsWith(prefix)) total += durationToSeconds(v);
   }
   return total;
 }

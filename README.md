@@ -64,8 +64,8 @@ effect, then `japonette login`. To inspect the script before running, see
 # Account
 japonette login                       # browser-based 42 OAuth
 japonette logout                      # delete local tokens
-japonette me                          # your profile + live location (cluster map if online)
-japonette me --info                   # also show cursus, piscine, campus, pool
+japonette me                          # your full profile + live location (cluster map if online)
+japonette me --brief                  # just identity + live status
 japonette uninstall [-y]              # wipe all local state at ~/.config/42-cli/
 
 # Profiles
@@ -76,7 +76,8 @@ japonette user <login> --info         # also show the academic profile
 japonette logtime                     # your monthly logtime, last 4 months
 japonette logtime alice               # someone else's logtime
 japonette logtime --months 6          # widen the range
-japonette logtime --days 14           # or scope it to recent days
+japonette logtime --weeks 8           # one row per calendar week (mon–sun)
+japonette logtime --days 14           # one row per day
 
 # Campus — who's online, plus your default
 japonette campus                      # who's at your campus right now
