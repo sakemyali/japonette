@@ -11,9 +11,10 @@ import kleur from "kleur";
 
 import { apiGet } from "../client.js";
 import { findClusterForHost, renderCluster, styleEmpty, styleOccupied } from "../cluster-map.js";
+import { resolveCampus } from "../commands/campus.js";
 import { loadCampuses } from "../config.js";
 import { userCardLines } from "../render.js";
-import { stepCarousel } from "./format.js";
+import { liveSessionSeconds, stepCarousel } from "./format.js";
 import type { RosterEntry } from "./format.js";
 import {
   clusterCount,
@@ -24,6 +25,7 @@ import {
   peopleView,
   personPopup,
   type PeopleTab,
+  searchedUserPopup,
   statusContent,
   type UIState,
   upcomingContent,
@@ -33,7 +35,9 @@ import {
   type DashboardData,
   fetchOccupancy,
   fetchStatic,
+  loadCachedDashboard,
   type Occupancy,
+  saveCachedDashboard,
   type StaticData,
 } from "./store.js";
 
@@ -67,9 +71,11 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
   let error: string | null = null;
   let nextRefreshAt = Date.now() + REFRESH_MS;
   let lastStaticAt = 0;
+  let lastOccAt = 0;
   let lastRotate = Date.now();
   let people: RosterEntry[] = [];
   let popup: any = null;
+  let mapsIdx: number | null = null; // non-null while the maps popup is open
   let phase = "starting up";
   let busy = false;
   let spin = 0;
@@ -87,8 +93,12 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
 
   const frame = (opts: Record<string, unknown>) =>
     blessed.box({ tags: false, border: "line", style: { border: { fg: "gray" } }, ...opts });
+  // autoFocus: false matters — blessed focuses any clickable element after its
+  // click handler runs, which would steal focus from whatever the handler just
+  // opened (the search textbox's readInput cancels itself on blur, making the
+  // search popup die instantly).
   const clickable = (opts: Record<string, unknown>) =>
-    blessed.box({ tags: false, clickable: true, mouse: true, height: 1, ...opts });
+    blessed.box({ tags: false, clickable: true, mouse: true, height: 1, autoFocus: false, ...opts });
 
   const header = blessed.box({ parent: screen, top: 0, left: 0, height: 1, width: "100%" });
   const status = blessed.box({ parent: screen, bottom: 0, left: 0, height: 1, width: "100%" });
@@ -160,20 +170,18 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
   function meCard(): string {
     const me = staticData?.me;
     if (!me) return "not loaded";
-    return [
-      `login   ${me.login}`,
-      `name    ${me.displayname ?? "-"}`,
-      `campus  ${staticData?.campus.slug ?? "-"}`,
-      "",
-      "esc / click to close",
-    ].join("\n");
+    // The full academic card (same as `japonette me` in the CLI), not just
+    // identity — level, blackhole, pool, eval points, wallet…
+    return [...userCardLines(me, { info: true }), "", kleur.dim("esc / click to close")].join(
+      "\n",
+    );
   }
   function helpText(): string {
     return [
       "keys",
       "  tab / arrows   switch People tab",
-      "  [ ]            step clusters",
-      "  l              lock/unlock carousel",
+      "  [ ]            step clusters (also in the maps popup)",
+      "  l              lock/unlock carousel (pauses the ▰▱ ticker)",
       "  r              refresh now",
       "  q              quit  (esc closes popups)",
       "",
@@ -183,14 +191,27 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
     ].join("\n");
   }
 
+  // Strip ANSI to measure the true visual width of styled lines.
+  const ANSI_RE = new RegExp(String.fromCharCode(27) + "\\[[0-9;]*m", "g");
+  const stripAnsi = (s: string) => s.replace(ANSI_RE, "");
+
+  // One clean box, sized to its content and clamped to the terminal — no
+  // oversized frame around a small card, no scrolling unless it truly
+  // overflows the screen.
   function openPopup(content: string): void {
     closePopup();
+    const lines = content.split("\n");
+    const w = Math.min(
+      Math.max(20, ...lines.map((l) => stripAnsi(l).length)) + 4,
+      (screen.width as number) - 2,
+    );
+    const h = Math.min(lines.length + 2, (screen.height as number) - 2);
     popup = blessed.box({
       parent: screen,
       top: "center",
       left: "center",
-      width: "60%",
-      height: "70%",
+      width: w,
+      height: h,
       border: "line",
       style: { border: { fg: "cyan" } },
       tags: false,
@@ -207,6 +228,7 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
     if (popup) {
       popup.destroy();
       popup = null;
+      mapsIdx = null;
       screen.grabKeys = false; // restore global hotkeys (input popups grab them)
       list.focus();
       screen.render();
@@ -267,25 +289,27 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
     screen.render();
   }
 
-  function showMaps(): void {
+  // The maps popup is browsable: ‹ › (click) or [ ] (keys) switch clusters
+  // without closing it. `mapsIdx` is non-null exactly while it's open, so the
+  // global [ ] handlers know to drive the popup instead of the carousel.
+  function showMaps(idx?: number): void {
     const data = compose();
     if (!data || data.clusters.length === 0) {
       openPopup("no cluster maps for this campus");
       return;
     }
-    const cur = data.clusters[clusterIndex(data, ui)]!;
+    closePopup();
+    const count = data.clusters.length;
+    mapsIdx = (((idx ?? clusterIndex(data, ui)) % count) + count) % count;
+    const cur = data.clusters[mapsIdx]!;
     const mapLines = renderCluster(cur.file, data.byHost);
     const seated = cur.file.hosts.filter((h) => data.byHost.has(h)).length;
 
-    closePopup();
-    // Size the box to the map (+ a slim right legend), clamped to the terminal —
-    // not the whole screen. Strip ANSI to measure the true visual width.
-    const ansi = new RegExp(String.fromCharCode(27) + "\\[[0-9;]*m", "g");
-    const strip = (s: string) => s.replace(ansi, "");
-    const mapW = Math.max(1, ...mapLines.map((l) => strip(l).length));
+    // Size the box to the map (+ a slim right legend), clamped to the terminal.
+    const mapW = Math.max(1, ...mapLines.map((l) => stripAnsi(l).length));
     const legendW = 14;
     const w = Math.min(mapW + legendW + 4, (screen.width as number) - 2);
-    const h = Math.min(mapLines.length + 2, (screen.height as number) - 2);
+    const h = Math.min(Math.max(mapLines.length, 12) + 2, (screen.height as number) - 2);
     popup = blessed.box({
       parent: screen,
       top: "center",
@@ -294,7 +318,7 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
       height: h,
       border: "line",
       style: { border: { fg: "cyan" } },
-      label: ` ${cur.file.name} (${cur.code}) `,
+      label: ` ${cur.file.name} (${cur.code}) ${mapsIdx + 1}/${count} `,
       clickable: true,
       mouse: true,
       tags: false,
@@ -314,7 +338,7 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
     });
     const legendPane = blessed.box({
       parent: popup,
-      top: 0,
+      top: 2,
       bottom: 0,
       right: 0,
       width: legendW,
@@ -322,7 +346,6 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
       mouse: true,
       tags: false,
       content: [
-        "",
         `${styleOccupied()} occupied`,
         "",
         `${styleEmpty()} empty`,
@@ -330,19 +353,24 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
         kleur.dim(`${seated}/${cur.file.hosts.length} seats`),
         "",
         "",
-        kleur.dim("esc/q/click"),
-        kleur.dim("to close"),
+        kleur.dim("[ ] switch"),
+        kleur.dim("esc/q close"),
       ].join("\n"),
     });
-    // Close on a click anywhere (matches the person popup); esc/q handled
-    // globally now that we no longer grab keys.
+    // ‹ › arrows in the legend's top row switch clusters in place.
+    const mapPrev = clickable({ parent: popup, top: 0, right: legendW - 2, width: 4, content: " ‹ " });
+    const mapNext = clickable({ parent: popup, top: 0, right: legendW - 7, width: 4, content: " › " });
+    mapPrev.on("click", () => showMaps((mapsIdx ?? 0) - 1));
+    mapNext.on("click", () => showMaps((mapsIdx ?? 0) + 1));
+    // Close on a click anywhere else; esc/q handled globally.
     for (const el of [popup, mapPane, legendPane]) el.on("click", closePopup);
     screen.render();
   }
 
   function showLogtime(): void {
     if (!staticData) return;
-    openPopup(logtimePopup(staticData.locationsStats));
+    const live = liveSessionSeconds(occ?.active ?? [], staticData.me?.login);
+    openPopup(logtimePopup(staticData.locationsStats, live));
   }
 
   function showCampus(): void {
@@ -361,6 +389,9 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
       staticData = null;
       occ = null;
       ui.clusterIdx = 0;
+      // Back to the default tab; loadStatic falls through to Active if the new
+      // campus has no cluster maps.
+      ui.tab = "clusters";
       draw();
       void fullRefresh();
     });
@@ -372,7 +403,10 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
       void (async () => {
         try {
           const u = await apiGet<any>(`/v2/users/${encodeURIComponent(login)}`);
-          openPopup([...userCardLines(u), "", kleur.dim("esc / click to close")].join("\n"));
+          // Same view as clicking a name in the roster: card + session + seat
+          // map (when they're online at the current campus).
+          const loc = occ?.active.find((l) => l.user?.login === u.login);
+          openPopup(searchedUserPopup(u, loc, clusterMapFor, userCardLines(u, { info: true })));
         } catch {
           openPopup(`user not found: ${login}`);
         }
@@ -431,7 +465,17 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
     } else {
       const view = peopleView(data, ui);
       people = view.people;
-      subhead.setContent(view.subhead);
+      let sub = view.subhead;
+      // Rotation ticker: fills one cell per second over the 8s auto-rotate,
+      // then the carousel switches — a visible countdown instead of a surprise.
+      if (ui.tab === "clusters" && clusterCount(data) > 1) {
+        const cells = Math.round(ROTATE_MS / 1000);
+        const filled = ui.locked
+          ? 0
+          : Math.min(cells, Math.floor((Date.now() - lastRotate) / 1000) + 1);
+        sub += "  " + (ui.locked ? kleur.dim("⏸") : kleur.dim("▰".repeat(filled) + "▱".repeat(cells - filled)));
+      }
+      subhead.setContent(sub);
       list.setItems(view.items);
     }
 
@@ -441,12 +485,33 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
     screen.render();
   }
 
+  // Best-effort: write the current snapshot to disk so the next launch hydrates
+  // instantly. Only meaningful once both halves exist; never fatal.
+  function persist(): void {
+    if (!staticData || !occ) return;
+    try {
+      saveCachedDashboard(staticData, lastStaticAt, occ, lastOccAt);
+    } catch {
+      /* cache is an optimization — a write failure must not break the TUI */
+    }
+  }
+
+  // A campus without contributed cluster maps has nothing to show on the
+  // Clusters tab — fall through to Active so the People box isn't dead.
+  function fixTab(): void {
+    if (staticData && staticData.clusters.length === 0 && ui.tab === "clusters") {
+      ui.tab = "active";
+    }
+  }
+
   async function loadStatic(): Promise<void> {
     busy = true;
     try {
       staticData = await fetchStatic(currentCampus, (p) => (phase = p));
       error = null;
       lastStaticAt = Date.now();
+      fixTab();
+      persist();
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     }
@@ -460,12 +525,43 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
     try {
       occ = await fetchOccupancy(staticData.campus, (p) => (phase = p));
       error = null;
+      lastOccAt = Date.now();
+      persist();
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     }
     busy = false;
     nextRefreshAt = Date.now() + REFRESH_MS;
     draw();
+  }
+
+  // Warm start: hydrate a recent on-disk snapshot for this campus, then re-fetch
+  // only the halves that have aged past their refresh window. Saves the full
+  // paginated re-fetch (and its request budget) on every relaunch. Returns false
+  // if there's nothing usable cached, so the caller falls back to a cold load.
+  async function warmStart(): Promise<boolean> {
+    let slug: string;
+    try {
+      slug = (await resolveCampus(currentCampus)).slug;
+    } catch {
+      return false; // no default campus / offline — let the cold path surface it
+    }
+    const cached = loadCachedDashboard(slug);
+    if (!cached) return false;
+
+    staticData = cached.static;
+    lastStaticAt = cached.staticAt;
+    occ = cached.occ;
+    lastOccAt = cached.occAt;
+    nextRefreshAt = cached.occAt + REFRESH_MS;
+    error = null;
+    fixTab();
+    draw();
+
+    const now = Date.now();
+    if (now - cached.staticAt >= STATIC_REFRESH_MS) await loadStatic();
+    if (now - cached.occAt >= REFRESH_MS) await loadOccupancy();
+    return true;
   }
 
   async function fullRefresh(): Promise<void> {
@@ -525,8 +621,9 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
   });
   screen.key(["tab", "right"], () => cycleTab(1));
   screen.key(["S-tab", "left"], () => cycleTab(-1));
-  screen.key(["]"], () => stepCluster(1));
-  screen.key(["["], () => stepCluster(-1));
+  // [ ] step the dashboard carousel — or the maps popup when it's open.
+  screen.key(["]"], () => (mapsIdx !== null ? showMaps(mapsIdx + 1) : stepCluster(1)));
+  screen.key(["["], () => (mapsIdx !== null ? showMaps(mapsIdx - 1) : stepCluster(-1)));
   screen.key(["l"], toggleLock);
   screen.key(["r"], () => {
     if (!popup) void fullRefresh();
@@ -579,6 +676,9 @@ export async function runDashboard(campusOpt?: string): Promise<void> {
 
   list.focus();
   draw(); // loading overlay
-  await loadStatic();
-  await loadOccupancy();
+  // Try a warm start from the on-disk snapshot first; fall back to a cold load
+  // for whichever halves the cache didn't already provide.
+  const warmed = await warmStart();
+  if (!warmed || !staticData) await loadStatic();
+  if (!occ) await loadOccupancy();
 }

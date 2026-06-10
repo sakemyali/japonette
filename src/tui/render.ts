@@ -9,11 +9,14 @@ import {
   computeStreak,
   durationToSeconds,
   fmtHM,
-  logtimeSeconds,
+  liveSessionSeconds,
   mainCursus,
   type Loc,
+  monthToDateSeconds,
   type RosterEntry,
   soonScaleTeams,
+  weeklyTotals,
+  ymd,
 } from "./format.js";
 import type { DashboardData } from "./store.js";
 
@@ -115,8 +118,12 @@ export function youContent(data: DashboardData): string {
   const me = data.me;
   const mc = mainCursus(me);
   const bh = blackholeDays(mc?.blackholed_at);
-  const streak = computeStreak(data.locationsStats);
-  const wk = logtimeSeconds(data.locationsStats, 7);
+  // The daily map misses the ongoing session — top it up from the live list
+  // so logtime/streak don't sit at 0 while you're at a desk. "wk" is the
+  // calendar week (since Monday), matching the intra, not a rolling 7 days.
+  const live = liveSessionSeconds(data.active, me?.login);
+  const streak = computeStreak(data.locationsStats, new Date(), live);
+  const wk = (weeklyTotals(data.locationsStats, 1).pop()?.secs ?? 0) + live;
   const lvl = typeof mc?.level === "number" ? mc.level.toFixed(2) : "-";
 
   const bhText =
@@ -176,32 +183,63 @@ export function statusContent(ui: UIState): string {
   );
 }
 
-// Logtime popup: a per-day sparkline of the last 14 days + today/week/month
-// totals, all from the already-fetched locations_stats (no extra API call).
-const SPARK = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
-export function logtimePopup(stats: Record<string, unknown>, now: Date = new Date()): string {
-  const days = 14;
-  const secs: number[] = [];
+// Logtime popup: the last 7 days as labeled rows (weekday, hours, bar), then a
+// weekly comparison graph (last 6 calendar weeks, Mon–Sun), then calendar
+// totals (this week / this month — what the intra means, not rolling windows).
+// All from the already-fetched daily map, no extra API call. `liveSeconds` is
+// the ongoing session (the daily map only has completed ones) — folded into
+// today, the current week, and the totals.
+const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+export function logtimePopup(
+  stats: Record<string, unknown>,
+  liveSeconds = 0,
+  now: Date = new Date(),
+): string {
+  const barW = 24;
+  const bar = (secs: number, max: number) =>
+    kleur.green("█".repeat(Math.round((secs / Math.max(max, 1)) * barW)));
+  const hm = (secs: number) =>
+    secs === 0 ? kleur.dim(fmtHM(0).padStart(7)) : fmtHM(secs).padStart(7);
+
+  const days: { label: string; secs: number; isToday: boolean }[] = [];
   const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  for (let i = 0; i < days; i++) {
-    const ymd = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(
-      cursor.getDate(),
-    ).padStart(2, "0")}`;
-    secs.unshift(durationToSeconds(stats?.[ymd]));
+  for (let i = 0; i < 7; i++) {
+    days.push({
+      label: `${WEEKDAYS[cursor.getDay()]} ${String(cursor.getDate()).padStart(2, "0")}`,
+      secs: durationToSeconds(stats?.[ymd(cursor)]) + (i === 0 ? liveSeconds : 0),
+      isToday: i === 0,
+    });
     cursor.setDate(cursor.getDate() - 1);
   }
-  const max = Math.max(...secs, 1);
-  const spark = secs
-    .map((s) => (s === 0 ? kleur.dim("▁") : SPARK[Math.min(SPARK.length - 1, Math.round((s / max) * (SPARK.length - 1)))]))
-    .join("");
+  const dmax = Math.max(...days.map((d) => d.secs));
+  const dayRows = days.map((d) => {
+    const label = d.isToday ? kleur.bold().cyan("today ") : kleur.cyan(d.label);
+    const live = d.isToday && liveSeconds > 0 ? kleur.dim(" ● live") : "";
+    return `  ${label}  ${hm(d.secs)}  ${bar(d.secs, dmax)}${live}`;
+  });
+
+  const weeks = weeklyTotals(stats, 6, now);
+  weeks[weeks.length - 1]!.secs += liveSeconds; // current week includes the live session
+  const wmax = Math.max(...weeks.map((w) => w.secs));
+  const weekRows = weeks.map((w, i) => {
+    const current = i === weeks.length - 1;
+    const label = `${MONTHS[w.start.getMonth()]} ${String(w.start.getDate()).padStart(2, "0")}`;
+    const mark = current ? kleur.dim(" ● this week") : "";
+    return `  ${(current ? kleur.bold().cyan : kleur.cyan)(label)}  ${hm(w.secs)}  ${bar(w.secs, wmax)}${mark}`;
+  });
+
+  const thisWeek = weeks[weeks.length - 1]!.secs;
+  const thisMonth = monthToDateSeconds(stats, now) + liveSeconds;
   return [
-    kleur.bold("logtime — last 14 days"),
+    kleur.bold("logtime"),
     "",
-    `  ${spark}`,
+    ...dayRows,
     "",
-    `${kleur.cyan("today")}   ${fmtHM(logtimeSeconds(stats, 1, now))}`,
-    `${kleur.cyan("week")}    ${fmtHM(logtimeSeconds(stats, 7, now))}`,
-    `${kleur.cyan("month")}   ${fmtHM(logtimeSeconds(stats, 30, now))}`,
+    kleur.bold("weeks") + kleur.dim("  mon–sun"),
+    ...weekRows,
+    "",
+    `  ${kleur.cyan("this week")} ${fmtHM(thisWeek)}   ${kleur.cyan(MONTHS[now.getMonth()]!)} ${fmtHM(thisMonth)}`,
     "",
     kleur.dim("esc / click to close"),
   ].join("\n");
@@ -218,6 +256,31 @@ export function personPopup(
     `${kleur.cyan("session")}   ${fmtHM(entry.sinceSeconds)}`,
   ];
   const map = findMap(entry.host);
+  if (map) lines.push("", kleur.dim("their cluster:"), ...map);
+  lines.push("", kleur.dim("esc / click to close"));
+  return lines.join("\n");
+}
+
+// Search-result popup: the full academic card, plus session + seat map when
+// they're online at the current campus — the same view as clicking a name in
+// the roster, just with the richer card on top.
+export function searchedUserPopup(
+  u: any,
+  loc: Loc | undefined,
+  findMap: (host: string) => string[] | null,
+  cardLines: string[],
+  now: Date = new Date(),
+): string {
+  const lines = [...cardLines];
+  const host = loc?.host ?? u?.location ?? null;
+  if (loc?.begin_at) {
+    const since = new Date(loc.begin_at).getTime();
+    if (!Number.isNaN(since)) {
+      const secs = Math.max(0, Math.floor((now.getTime() - since) / 1000));
+      lines.push(`${kleur.cyan("session")}   ${fmtHM(secs)}`);
+    }
+  }
+  const map = host ? findMap(host) : null;
   if (map) lines.push("", kleur.dim("their cluster:"), ...map);
   lines.push("", kleur.dim("esc / click to close"));
   return lines.join("\n");

@@ -14,6 +14,7 @@ export const CONFIG_FILE = join(CONFIG_DIR, "config.json");
 export const TOKEN_FILE = join(CONFIG_DIR, "token.json");
 export const CAMPUSES_FILE = join(CONFIG_DIR, "campuses.json");
 export const FRIENDS_FILE = join(CONFIG_DIR, "friends.json");
+export const TUI_CACHE_FILE = join(CONFIG_DIR, "tui-cache.json");
 
 export interface AppConfig {
   defaultCampusSlug: string;
@@ -129,6 +130,42 @@ export function loadFriends(): FriendsFile {
 export function saveFriends(f: FriendsFile): void {
   ensureDir();
   writeFileSync(FRIENDS_FILE, JSON.stringify(f, null, 2), "utf8");
+}
+
+// A persisted snapshot of the TUI dashboard's network-derived data, keyed by
+// campus slug. Holds only what's expensive to re-fetch (profile/evals/logtime +
+// the paginated "who's online" list) with separate timestamps, so a relaunch
+// can hydrate instantly and re-fetch only the parts that have gone stale. The
+// cheap local-only parts (friends file, cluster maps) are re-derived on load.
+//
+// Bump the version whenever the snapshot's shape *or meaning* changes (e.g.
+// locationsStats switching from API durations to computed seconds) — an old
+// snapshot is silently treated as a miss so a fresh fetch replaces it.
+const TUI_CACHE_VERSION = 2;
+
+export interface TuiSnapshot {
+  v?: number;
+  staticAt: number;
+  me: any;
+  campus: { slug: string; id: number };
+  scaleTeams: any[];
+  locationsStats: Record<string, unknown>;
+  occAt: number;
+  active: any[];
+}
+
+export function loadTuiSnapshot(slug: string): TuiSnapshot | null {
+  const all = readJson<Record<string, TuiSnapshot>>(TUI_CACHE_FILE);
+  const snap = all?.[slug];
+  if (!snap || snap.v !== TUI_CACHE_VERSION) return null;
+  return snap;
+}
+
+export function saveTuiSnapshot(slug: string, snap: Omit<TuiSnapshot, "v">): void {
+  ensureDir();
+  const all = readJson<Record<string, TuiSnapshot>>(TUI_CACHE_FILE) ?? {};
+  all[slug] = { ...snap, v: TUI_CACHE_VERSION };
+  writeFileSync(TUI_CACHE_FILE, JSON.stringify(all, null, 2), "utf8");
 }
 
 export function friendsHas(f: FriendsFile, login: string): boolean {
