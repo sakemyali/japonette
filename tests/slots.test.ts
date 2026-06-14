@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { groupSlots, inScaleTeamRole, parseSlotRange, type RawSlot } from "../src/slots.ts";
+import {
+  groupSlots,
+  inScaleTeamRole,
+  parseSlotRange,
+  pickOpenWindow,
+  type RawSlot,
+  type SlotWindow,
+} from "../src/slots.ts";
 
 describe("parseSlotRange", () => {
   const now = new Date(2026, 5, 9, 10, 0, 0); // 2026-06-09 10:00 local
@@ -43,6 +50,27 @@ describe("parseSlotRange", () => {
 
   it("rejects a non-positive span", () => {
     expect(() => parseSlotRange("today", "16:00-14:00", now)).toThrow(/after start/);
+  });
+});
+
+describe("pickOpenWindow", () => {
+  const win = (begin: string, booked = false): SlotWindow => ({
+    begin,
+    end: begin,
+    ids: [1],
+    booked,
+  });
+  // open, booked, open — numbering must skip the booked one.
+  const windows = [win("a"), win("b", true), win("c")];
+
+  it("numbers open windows only (1-based), skipping booked", () => {
+    expect(pickOpenWindow(windows, 1)?.begin).toBe("a");
+    expect(pickOpenWindow(windows, 2)?.begin).toBe("c");
+  });
+  it("returns null out of range or for non-integers", () => {
+    expect(pickOpenWindow(windows, 3)).toBeNull(); // only 2 open
+    expect(pickOpenWindow(windows, 0)).toBeNull();
+    expect(pickOpenWindow(windows, NaN)).toBeNull();
   });
 });
 

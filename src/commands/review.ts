@@ -1,9 +1,19 @@
+import { createInterface } from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
+
 import kleur from "kleur";
 
 import { AuthError } from "../auth.js";
 import { apiDelete, apiGet, ApiError, apiPost } from "../client.js";
 import { err, fmtTime, scaleTeamsTable, slotsTable, withSpinner } from "../render.js";
-import { groupSlots, inScaleTeamRole, parseSlotRange, type RawSlot } from "../slots.js";
+import {
+  groupSlots,
+  inScaleTeamRole,
+  parseSlotRange,
+  pickOpenWindow,
+  type RawSlot,
+  type SlotWindow,
+} from "../slots.js";
 
 // Slot/scale_team calls need the `projects` OAuth scope. A token minted before
 // that scale was added gets a 403 "Insufficient scope" — point the user at a
@@ -48,34 +58,86 @@ export async function reviewOpenCmd(when: string, range?: string): Promise<void>
       kleur.green(`opened ${n} × 15-min slot${n === 1 ? "" : "s"}`) +
         kleur.dim(`  ${fmtTime(begin.toISOString())} → ${fmtTime(end.toISOString()).slice(11)}`),
     );
-    console.log(kleur.dim("see them with `japonette review`."));
+    console.log(kleur.dim("see them with `japonette review list`."));
   } catch (e) {
     handleErr(e);
   }
 }
 
-// `review slots` — your upcoming availability, open vs. already booked.
+// Your upcoming availability as merged windows (contiguous open slots folded
+// into one), shared by `review list` and `review cancel` so their numbering
+// agrees.
+async function fetchUpcomingWindows(): Promise<SlotWindow[]> {
+  const slots = await withSpinner("fetching your slots...", () =>
+    apiGet<RawSlot[]>("/v2/me/slots", { "page[size]": 100, sort: "begin_at" }),
+  );
+  const now = Date.now();
+  const upcoming = (slots ?? []).filter((s) => new Date(s.end_at).getTime() > now);
+  return groupSlots(upcoming);
+}
+
+const whenLabel = (w: SlotWindow) => `${fmtTime(w.begin)} → ${fmtTime(w.end).slice(11)}`;
+
+// `review list` — the availability slots you've opened, open vs. already booked.
+// Open windows are numbered (#1..n) for `review cancel`.
 export async function reviewSlotsCmd(): Promise<void> {
   try {
-    const slots = await withSpinner("fetching your slots...", () =>
-      apiGet<RawSlot[]>("/v2/me/slots", { "page[size]": 100, sort: "begin_at" }),
-    );
-    const now = Date.now();
-    const upcoming = (slots ?? []).filter((s) => new Date(s.end_at).getTime() > now);
-    slotsTable(groupSlots(upcoming));
+    slotsTable(await fetchUpcomingWindows());
   } catch (e) {
     handleErr(e);
   }
 }
 
-// `review cancel <id>` — withdraw one 15-min slot. The API refuses if it has
-// already been booked.
-export async function reviewCancelCmd(id: string): Promise<void> {
+// Withdraw every 15-min slot in one open window, then report it.
+async function cancelWindow(w: SlotWindow): Promise<void> {
+  await withSpinner(`cancelling ${whenLabel(w)}...`, async () => {
+    for (const id of w.ids) await apiDelete(`/v2/slots/${id}`);
+  });
+  console.log(
+    kleur.green("✓ cancelled ") + whenLabel(w) + kleur.dim(`  (${w.ids.length} × 15-min)`),
+  );
+}
+
+// `review cancel [n]` — cancel an open slot by the number shown in `review list`
+// (cancels the whole window at once). With no number, list the open windows and
+// prompt for one. Booked windows can't be cancelled, so only open ones number.
+export async function reviewCancelCmd(n?: string): Promise<void> {
   try {
-    await withSpinner(`cancelling slot ${id}...`, () =>
-      apiDelete(`/v2/slots/${encodeURIComponent(id)}`),
-    );
-    console.log(kleur.green(`slot ${id} cancelled.`));
+    const windows = await fetchUpcomingWindows();
+    const open = windows.filter((w) => !w.booked);
+
+    if (n !== undefined) {
+      const w = pickOpenWindow(windows, Number(n));
+      if (!w) {
+        err(`no open slot #${n} — you have ${open.length}. See \`japonette review list\`.`);
+        process.exit(1);
+      }
+      await cancelWindow(w);
+      return;
+    }
+
+    if (open.length === 0) {
+      console.log(kleur.dim("no open slots to cancel."));
+      return;
+    }
+    slotsTable(windows);
+    const rl = createInterface({ input, output });
+    let answer: string;
+    try {
+      answer = (await rl.question("\ncancel which # (blank to abort): ")).trim();
+    } finally {
+      rl.close();
+    }
+    if (answer === "" || answer.toLowerCase() === "q") {
+      console.log(kleur.dim("aborted"));
+      return;
+    }
+    const w = pickOpenWindow(windows, Number(answer));
+    if (!w) {
+      err(`no open slot #${answer} — you have ${open.length}.`);
+      process.exit(1);
+    }
+    await cancelWindow(w);
   } catch (e) {
     handleErr(e);
   }

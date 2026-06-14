@@ -95,12 +95,12 @@ japonette friends list                # show your watchlist
 japonette friends add <login>
 japonette friends remove <login>
 
-# Evaluations (peer-correction slots — you open them when you're free to correct)
-japonette review                      # your upcoming slots, open vs. booked
-japonette review open 14-16           # declare availability today (or: review open tomorrow 14:00-16:00)
-japonette review cancel <id>          # cancel an open slot (id from `review`)
-japonette review booked               # evaluations that got booked, both directions
-japonette review booked -g            # only the ones you'll correct (-r for receive)
+# Evaluations (peer corrections — open availability slots, track your calendar)
+japonette review                      # your booked evaluations (your correction calendar)
+japonette review -g                   # only the ones you'll correct (-r for receive)
+japonette review list                 # the availability slots you've opened (numbered)
+japonette review open today 14:00-16:00   # open a slot (day optional → today; 14-16 shorthand ok)
+japonette review cancel 2             # cancel open slot #2 (or just `review cancel` to pick)
 
 # Shell
 japonette help                        # grouped overview of all commands

@@ -67,6 +67,14 @@ export function inScaleTeamRole(
   return (team?.correcteds ?? []).some((c: any) => c?.id === userId);
 }
 
+// The nth (1-based) cancellable window. Only open windows are cancellable (the
+// API refuses booked ones), so numbering skips booked — matching how `review
+// list` numbers and what `review cancel <n>` selects. Null if out of range.
+export function pickOpenWindow(windows: SlotWindow[], n: number): SlotWindow | null {
+  const open = windows.filter((w) => !w.booked);
+  return Number.isInteger(n) && n >= 1 && n <= open.length ? open[n - 1]! : null;
+}
+
 // The login of the team being evaluated on a booked slot, if discoverable.
 function bookedPeer(scaleTeam: unknown): string | undefined {
   const st = scaleTeam as { correcteds?: { login?: string }[] } | null;

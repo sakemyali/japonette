@@ -141,27 +141,34 @@ friends
   .description("Remove a login from your local friends list.")
   .action(friendsRemoveCmd);
 
-// Peer-evaluation availability slots. You (the evaluator) open slots when
-// you're free; people book them to get their project evaluated. Bare `review`
-// shows your upcoming slots.
+// Peer evaluations. Bare `review` shows your booked evaluations (your
+// correction calendar); `review list` shows the availability slots you've
+// opened, and `review open` / `cancel` manage them. (`review booked` is an
+// explicit alias of bare `review`, mirroring `campus online`.)
 const review = program
   .command("review")
-  .description("Your evaluation slots — open when you're free to correct.")
-  .action(reviewSlotsCmd);
-review
-  .command("open <when> [range]")
-  .description('Open a slot to evaluate; day optional (defaults today), e.g. `review open 14-16`.')
-  .action((when: string, range?: string) => reviewOpenCmd(when, range));
-review
-  .command("cancel <id>")
-  .description("Cancel one open slot by id (shown in `review`).")
-  .action((id: string) => reviewCancelCmd(id));
-review
-  .command("booked")
-  .description("Evaluations on your calendar — both directions by default.")
+  .description("Your booked evaluations — both directions by default.")
   .option("-g, --giving", "only reviews you'll do (you're the corrector)")
   .option("-r, --receiving", "only reviews you'll receive (you're being evaluated)")
   .action((opts: { giving?: boolean; receiving?: boolean }) => reviewBookedCmd(opts));
+review
+  .command("booked")
+  .description("Alias of `review` — your booked evaluations.")
+  .option("-g, --giving", "only reviews you'll do (you're the corrector)")
+  .option("-r, --receiving", "only reviews you'll receive (you're being evaluated)")
+  .action((opts: { giving?: boolean; receiving?: boolean }) => reviewBookedCmd(opts));
+review
+  .command("list")
+  .description("The availability slots you've opened (numbered for `cancel`).")
+  .action(reviewSlotsCmd);
+review
+  .command("open <when> [range]")
+  .description("Open an availability slot, e.g. `review open today 14:00-16:00` (day optional → today; `14-16` ok).")
+  .action((when: string, range?: string) => reviewOpenCmd(when, range));
+review
+  .command("cancel [n]")
+  .description("Cancel an open slot by its number from `review list`, or pick one interactively.")
+  .action((n?: string) => reviewCancelCmd(n));
 
 registerCompletionCommand(program);
 

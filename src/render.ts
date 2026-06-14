@@ -252,32 +252,33 @@ function fmtSpan(begin: string, end: string): string {
   return Number.isFinite(ms) ? fmtHM(Math.max(0, Math.floor(ms / 1000))) : "-";
 }
 
-// Your upcoming evaluation slots, one row per window. Open windows show their
-// underlying 15-min slot ids (for `review cancel`); booked ones name who took
-// them.
+// Your upcoming evaluation slots, one row per window. Open windows get a number
+// (#1..n) for `review cancel <n>`; booked ones name who took them and carry no
+// number (they can't be cancelled).
 export function slotsTable(
   windows: { begin: string; end: string; ids: number[]; booked: boolean; bookedBy?: string }[],
 ): void {
   if (windows.length === 0) {
     console.log(
-      kleur.dim("no upcoming slots — open one with `japonette review open <day> <HH:MM-HH:MM>`"),
+      kleur.dim("no upcoming slots — open one with `japonette review open today 14:00-16:00`"),
     );
     return;
   }
   const t = new Table({
-    head: ["when", "duration", "status", "ids"].map((s) => kleur.bold(s)),
+    head: ["#", "when", "duration", "status"].map((s) => kleur.bold(s)),
     chars: TABLE_CHARS,
-    colAligns: ["left", "right", "left", "left"],
+    colAligns: ["right", "left", "right", "left"],
   });
+  let n = 0;
   for (const w of windows) {
     const status = w.booked
       ? kleur.green("booked") + (w.bookedBy ? kleur.dim(` ${w.bookedBy}`) : "")
       : kleur.dim("open");
     t.push([
+      w.booked ? kleur.dim("—") : String(++n),
       `${fmtTime(w.begin)} → ${fmtTime(w.end).slice(11)}`,
       fmtSpan(w.begin, w.end),
       status,
-      kleur.dim(w.ids.join(",")),
     ]);
   }
   console.log(t.toString());

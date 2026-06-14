@@ -51,10 +51,10 @@ export const COMMAND_GROUPS: HelpGroup[] = [
   {
     title: "Evaluations",
     commands: [
-      { name: "review", summary: "your upcoming evaluation slots" },
-      { name: "review open [day] <range>", summary: "open a slot to evaluate" },
-      { name: "review cancel <id>", summary: "cancel an open slot" },
-      { name: "review booked", summary: "evaluations that got booked" },
+      { name: "review", summary: "your booked evaluations (both sides; -g/-r to filter)" },
+      { name: "review list", summary: "the availability slots you've opened" },
+      { name: "review open [day] <range>", summary: "open an availability slot (day → today)" },
+      { name: "review cancel [n]", summary: "cancel an open slot by number, or pick interactively" },
     ],
   },
   {
