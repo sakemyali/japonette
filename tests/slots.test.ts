@@ -19,6 +19,14 @@ describe("parseSlotRange", () => {
     expect(parseSlotRange("tomorrow", "09:00-10:00", now).begin.getDate()).toBe(10);
   });
 
+  it("accepts whole-hour shorthand (14-16)", () => {
+    const { begin, end } = parseSlotRange("today", "14-16", now);
+    expect(begin.getHours()).toBe(14);
+    expect(begin.getMinutes()).toBe(0);
+    expect(end.getHours()).toBe(16);
+    expect(end.getMinutes()).toBe(0);
+  });
+
   it("accepts an en-dash separator", () => {
     const { end } = parseSlotRange("today", "09:00–11:30", now);
     expect(end.getHours()).toBe(11);

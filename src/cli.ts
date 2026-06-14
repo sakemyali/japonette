@@ -149,16 +149,12 @@ const review = program
   .description("Your evaluation slots — open when you're free to correct.")
   .action(reviewSlotsCmd);
 review
-  .command("open <day> <range>")
-  .description('Open a slot to evaluate, e.g. `review open today 14:00-16:00`.')
-  .action((day: string, range: string) => reviewOpenCmd(day, range));
-review
-  .command("slots")
-  .description("Explicit alias of `review` — your upcoming slots (open + booked).")
-  .action(reviewSlotsCmd);
+  .command("open <when> [range]")
+  .description('Open a slot to evaluate; day optional (defaults today), e.g. `review open 14-16`.')
+  .action((when: string, range?: string) => reviewOpenCmd(when, range));
 review
   .command("cancel <id>")
-  .description("Cancel one open slot by id (shown in `review slots`).")
+  .description("Cancel one open slot by id (shown in `review`).")
   .action((id: string) => reviewCancelCmd(id));
 review
   .command("booked")

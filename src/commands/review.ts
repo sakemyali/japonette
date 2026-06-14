@@ -24,12 +24,15 @@ function handleErr(e: unknown): never {
   throw e;
 }
 
-// `review open <day> <HH:MM-HH:MM>` — declare yourself available to evaluate.
-// The 42 API splits the interval into 15-min slots; people get matched to one
-// when they book their project, and your slot shows as `booked`.
-export async function reviewOpenCmd(day: string, range: string): Promise<void> {
+// `review open [day] <HH:MM-HH:MM>` — declare yourself available to evaluate.
+// The day is optional and defaults to today. The 42 API splits the interval
+// into 15-min slots; people get matched to one when they book their project,
+// and your slot shows as `booked`.
+export async function reviewOpenCmd(when: string, range?: string): Promise<void> {
   try {
-    const { begin, end } = parseSlotRange(day, range);
+    // One positional → it's the range, day is today. Two → day + range.
+    const [day, span] = range === undefined ? ["today", when] : [when, range];
+    const { begin, end } = parseSlotRange(day, span);
     const me = await withSpinner("checking your account...", () => apiGet<any>("/v2/me"));
     const created = await withSpinner("opening slot...", () =>
       apiPost<RawSlot[] | RawSlot>("/v2/slots", {
@@ -45,7 +48,7 @@ export async function reviewOpenCmd(day: string, range: string): Promise<void> {
       kleur.green(`opened ${n} × 15-min slot${n === 1 ? "" : "s"}`) +
         kleur.dim(`  ${fmtTime(begin.toISOString())} → ${fmtTime(end.toISOString()).slice(11)}`),
     );
-    console.log(kleur.dim("see them with `japonette review slots`."));
+    console.log(kleur.dim("see them with `japonette review`."));
   } catch (e) {
     handleErr(e);
   }

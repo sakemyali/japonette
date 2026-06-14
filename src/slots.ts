@@ -44,13 +44,14 @@ export function parseSlotRange(
   now: Date = new Date(),
 ): { begin: Date; end: Date } {
   const base = resolveDay(day, now);
-  const m = range.trim().match(/^(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})$/);
+  // Minutes optional, so whole-hour shorthand "14-16" works as well as "14:00-16:00".
+  const m = range.trim().match(/^(\d{1,2})(?::(\d{2}))?\s*[-–]\s*(\d{1,2})(?::(\d{2}))?$/);
   if (!m) {
-    throw new Error(`bad range "${range}" — expected HH:MM-HH:MM, e.g. 14:00-16:00`);
+    throw new Error(`bad range "${range}" — expected HH:MM-HH:MM, e.g. 14:00-16:00 (or 14-16)`);
   }
   const [, sh, sm, eh, em] = m;
-  const begin = atTime(base, Number(sh), Number(sm));
-  const end = atTime(base, Number(eh), Number(em));
+  const begin = atTime(base, Number(sh), Number(sm ?? 0));
+  const end = atTime(base, Number(eh), Number(em ?? 0));
   if (end <= begin) throw new Error("end time must be after start time");
   return { begin, end };
 }

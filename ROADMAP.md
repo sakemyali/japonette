@@ -10,10 +10,10 @@ first if it's a larger one so we can align on shape.
   *(0.2.0)*.
 - [x] One-line install for 42 cluster machines without sudo —
   [`scripts/cluster-install.sh`](scripts/cluster-install.sh) *(0.2.0)*.
-- [x] `japonette review open <day> <range>` — open an evaluation slot when
-  you're free to correct (`POST /v2/slots`); `review` / `review slots` list
-  them, `review cancel <id>` withdraws one. Needs the `projects` OAuth scope
-  *(sakemyali)*.
+- [x] `japonette review open [day] <range>` — open an evaluation slot when
+  you're free to correct (`POST /v2/slots`); day defaults to today, `review`
+  lists them, `review cancel <id>` withdraws one. Needs the `projects` OAuth
+  scope *(sakemyali)*.
 - [x] `japonette review booked` — your booked evaluations, both directions
   (`GET /v2/me/scale_teams`) *(sakemyali)*.
 
