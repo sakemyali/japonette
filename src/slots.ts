@@ -56,6 +56,17 @@ export function parseSlotRange(
   return { begin, end };
 }
 
+// Which side of a booked evaluation you're on: "giving" = you're the corrector,
+// "receiving" = you're among the correcteds. Used to filter `review booked`.
+export function inScaleTeamRole(
+  team: any,
+  userId: number,
+  role: "giving" | "receiving",
+): boolean {
+  if (role === "giving") return team?.corrector?.id === userId;
+  return (team?.correcteds ?? []).some((c: any) => c?.id === userId);
+}
+
 // The login of the team being evaluated on a booked slot, if discoverable.
 function bookedPeer(scaleTeam: unknown): string | undefined {
   const st = scaleTeam as { correcteds?: { login?: string }[] } | null;

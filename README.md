@@ -100,6 +100,7 @@ japonette review                      # your upcoming slots, open vs. booked
 japonette review open 14-16           # declare availability today (or: review open tomorrow 14:00-16:00)
 japonette review cancel <id>          # cancel an open slot (id from `review`)
 japonette review booked               # evaluations that got booked, both directions
+japonette review booked --giving      # only the ones you'll correct (or --receiving)
 
 # Shell
 japonette help                        # grouped overview of all commands

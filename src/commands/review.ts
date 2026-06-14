@@ -3,7 +3,7 @@ import kleur from "kleur";
 import { AuthError } from "../auth.js";
 import { apiDelete, apiGet, ApiError, apiPost } from "../client.js";
 import { err, fmtTime, scaleTeamsTable, slotsTable, withSpinner } from "../render.js";
-import { groupSlots, parseSlotRange, type RawSlot } from "../slots.js";
+import { groupSlots, inScaleTeamRole, parseSlotRange, type RawSlot } from "../slots.js";
 
 // Slot/scale_team calls need the `projects` OAuth scope. A token minted before
 // that scale was added gets a 403 "Insufficient scope" — point the user at a
@@ -84,12 +84,25 @@ export async function reviewCancelCmd(id: string): Promise<void> {
 // `review booked` — evaluations on your calendar, both directions: a slot of
 // yours that got filled (you're the corrector) and any project you're being
 // evaluated on.
-export async function reviewBookedCmd(): Promise<void> {
+export async function reviewBookedCmd(
+  opts: { giving?: boolean; receiving?: boolean } = {},
+): Promise<void> {
   try {
+    // --giving / --receiving narrow by side; neither (or both) shows all.
+    const role = opts.giving && !opts.receiving
+      ? "giving"
+      : opts.receiving && !opts.giving
+        ? "receiving"
+        : null;
     const teams = await withSpinner("fetching your evaluations...", () =>
       apiGet<any[]>("/v2/me/scale_teams", { "page[size]": 100, sort: "begin_at" }),
     );
-    scaleTeamsTable(teams ?? []);
+    let rows = teams ?? [];
+    if (role) {
+      const me = await apiGet<any>("/v2/me");
+      rows = rows.filter((t) => inScaleTeamRole(t, me.id, role));
+    }
+    scaleTeamsTable(rows);
   } catch (e) {
     handleErr(e);
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { groupSlots, parseSlotRange, type RawSlot } from "../src/slots.ts";
+import { groupSlots, inScaleTeamRole, parseSlotRange, type RawSlot } from "../src/slots.ts";
 
 describe("parseSlotRange", () => {
   const now = new Date(2026, 5, 9, 10, 0, 0); // 2026-06-09 10:00 local
@@ -43,6 +43,18 @@ describe("parseSlotRange", () => {
 
   it("rejects a non-positive span", () => {
     expect(() => parseSlotRange("today", "16:00-14:00", now)).toThrow(/after start/);
+  });
+});
+
+describe("inScaleTeamRole", () => {
+  const team = { corrector: { id: 7 }, correcteds: [{ id: 9 }, { id: 11 }] };
+  it("giving = you're the corrector", () => {
+    expect(inScaleTeamRole(team, 7, "giving")).toBe(true);
+    expect(inScaleTeamRole(team, 9, "giving")).toBe(false);
+  });
+  it("receiving = you're among the correcteds", () => {
+    expect(inScaleTeamRole(team, 9, "receiving")).toBe(true);
+    expect(inScaleTeamRole(team, 7, "receiving")).toBe(false);
   });
 });
 

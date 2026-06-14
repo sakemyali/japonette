@@ -158,8 +158,10 @@ review
   .action((id: string) => reviewCancelCmd(id));
 review
   .command("booked")
-  .description("Evaluations on your calendar — slots that got filled, both directions.")
-  .action(reviewBookedCmd);
+  .description("Evaluations on your calendar — both directions by default.")
+  .option("--giving", "only reviews you'll do (you're the corrector)")
+  .option("--receiving", "only reviews you'll receive (you're being evaluated)")
+  .action((opts: { giving?: boolean; receiving?: boolean }) => reviewBookedCmd(opts));
 
 registerCompletionCommand(program);
 
