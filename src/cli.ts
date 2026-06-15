@@ -162,9 +162,9 @@ review
   .description("The availability slots you've opened (numbered for `cancel`).")
   .action(reviewSlotsCmd);
 review
-  .command("open <when> [range]")
-  .description("Open an availability slot, e.g. `review open today 14:00-16:00` (day optional → today; `14-16` ok).")
-  .action((when: string, range?: string) => reviewOpenCmd(when, range));
+  .command("open [args...]")
+  .description("Open a slot, e.g. `review open soon 1h`, `review open 14 90m`, `review open fri 2pm 1h30m`.")
+  .action((args: string[]) => reviewOpenCmd(args));
 review
   .command("cancel [n]")
   .description("Cancel an open slot by its number from `review list`, or pick one interactively.")

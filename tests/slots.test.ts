@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   groupSlots,
   inScaleTeamRole,
+  parseSlotArgs,
   parseSlotRange,
   pickOpenWindow,
   type RawSlot,
@@ -50,6 +51,56 @@ describe("parseSlotRange", () => {
 
   it("rejects a non-positive span", () => {
     expect(() => parseSlotRange("today", "16:00-14:00", now)).toThrow(/after start/);
+  });
+});
+
+describe("parseSlotArgs", () => {
+  const now = new Date(2026, 5, 15, 10, 0, 0); // 2026-06-15 10:00 local
+
+  it("start + duration (day defaults today)", () => {
+    const { begin, end } = parseSlotArgs(["14", "1h"], now);
+    expect(begin.getDate()).toBe(15);
+    expect(begin.getHours()).toBe(14);
+    expect(end.getHours()).toBe(15);
+  });
+
+  it("day + start + duration", () => {
+    const { begin, end } = parseSlotArgs(["tomorrow", "9", "90m"], now);
+    expect(begin.getDate()).toBe(16);
+    expect(begin.getHours()).toBe(9);
+    expect(end.getHours()).toBe(10);
+    expect(end.getMinutes()).toBe(30);
+  });
+
+  it("weekday resolves to its day-of-week, am/pm parsed", () => {
+    const { begin } = parseSlotArgs(["fri", "2pm", "1h"], now);
+    expect(begin.getDay()).toBe(5);
+    expect(begin.getHours()).toBe(14);
+  });
+
+  it("`soon` = now+30m snapped up to the 15-min grid", () => {
+    const { begin, end } = parseSlotArgs(["soon", "1h"], now);
+    expect(begin.getTime()).toBeGreaterThanOrEqual(now.getTime() + 30 * 60_000);
+    expect(begin.getMinutes() % 15).toBe(0);
+    expect(end.getTime() - begin.getTime()).toBe(60 * 60_000);
+  });
+
+  it("relative `+45m` start counts from now", () => {
+    const { begin } = parseSlotArgs(["+45m", "1h"], now);
+    expect(begin.getHours()).toBe(10);
+    expect(begin.getMinutes()).toBe(45);
+  });
+
+  it("still accepts the range form, with or without a day", () => {
+    expect(parseSlotArgs(["14-16"], now).begin.getHours()).toBe(14);
+    expect(parseSlotArgs(["today", "14:00-16:00"], now).end.getHours()).toBe(16);
+  });
+
+  it("rejects junk and missing pieces", () => {
+    expect(() => parseSlotArgs([], now)).toThrow(/usage/);
+    expect(() => parseSlotArgs(["soon"], now)).toThrow(/duration/);
+    expect(() => parseSlotArgs(["banana", "1h"], now)).toThrow(/bad time/);
+    expect(() => parseSlotArgs(["14", "0h"], now)).toThrow(/duration/);
   });
 });
 

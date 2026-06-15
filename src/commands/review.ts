@@ -9,11 +9,29 @@ import { err, fmtTime, scaleTeamsTable, slotsTable, withSpinner } from "../rende
 import {
   groupSlots,
   inScaleTeamRole,
-  parseSlotRange,
+  parseSlotArgs,
   pickOpenWindow,
   type RawSlot,
   type SlotWindow,
 } from "../slots.js";
+
+// Turn an API error body into one readable line. The slots endpoint returns
+// either `{"error":"…"}` (400) or `{"errors":{"begin_at":["…"]}}` (422); show
+// the message(s) instead of dumping JSON.
+function formatApiError(body: string): string | null {
+  try {
+    const o = JSON.parse(body);
+    if (o?.errors && typeof o.errors === "object") {
+      return Object.entries(o.errors)
+        .map(([f, msgs]) => `${f}: ${(Array.isArray(msgs) ? msgs : [msgs]).join(", ")}`)
+        .join("; ");
+    }
+    if (typeof o?.error === "string") return o.error;
+  } catch {
+    /* not JSON — fall through */
+  }
+  return null;
+}
 
 // Slot/scale_team calls need the `projects` OAuth scope. A token minted before
 // that scale was added gets a 403 "Insufficient scope" — point the user at a
@@ -23,26 +41,24 @@ function handleErr(e: unknown): never {
     err("this needs the `projects` scope — run `japonette login` again to grant it.");
     process.exit(1);
   }
-  if (e instanceof ApiError || e instanceof AuthError) {
-    err(e.message);
+  if (e instanceof ApiError) {
+    err(formatApiError(e.body) ?? e.message);
     process.exit(1);
   }
-  if (e instanceof Error) {
+  if (e instanceof AuthError || e instanceof Error) {
     err(e.message);
     process.exit(1);
   }
   throw e;
 }
 
-// `review open [day] <HH:MM-HH:MM>` — declare yourself available to evaluate.
-// The day is optional and defaults to today. The 42 API splits the interval
-// into 15-min slots; people get matched to one when they book their project,
-// and your slot shows as `booked`.
-export async function reviewOpenCmd(when: string, range?: string): Promise<void> {
+// `review open [day] <start> <duration>` (or `[day] <HH:MM-HH:MM>`) — declare
+// yourself available to evaluate. The API enforces its limits (≥30 min ahead,
+// ≤2 weeks, campus min duration) and snaps to a 15-min grid, splitting the
+// window into 15-min slots; we echo back the snapped times it actually created.
+export async function reviewOpenCmd(args: string[]): Promise<void> {
   try {
-    // One positional → it's the range, day is today. Two → day + range.
-    const [day, span] = range === undefined ? ["today", when] : [when, range];
-    const { begin, end } = parseSlotRange(day, span);
+    const { begin, end } = parseSlotArgs(args);
     const me = await withSpinner("checking your account...", () => apiGet<any>("/v2/me"));
     const created = await withSpinner("opening slot...", () =>
       apiPost<RawSlot[] | RawSlot>("/v2/slots", {
@@ -53,10 +69,15 @@ export async function reviewOpenCmd(when: string, range?: string): Promise<void>
         },
       }),
     );
-    const n = Array.isArray(created) ? created.length : 1;
+    // Echo the times the API actually used (it floors to the 15-min grid).
+    const arr = Array.isArray(created) ? created : [created];
+    const begins = arr.map((s) => s.begin_at).filter(Boolean).sort();
+    const ends = arr.map((s) => s.end_at).filter(Boolean).sort();
+    const first = begins[0] ?? begin.toISOString();
+    const last = ends[ends.length - 1] ?? end.toISOString();
     console.log(
-      kleur.green(`opened ${n} × 15-min slot${n === 1 ? "" : "s"}`) +
-        kleur.dim(`  ${fmtTime(begin.toISOString())} → ${fmtTime(end.toISOString()).slice(11)}`),
+      kleur.green(`opened ${arr.length} × 15-min slot${arr.length === 1 ? "" : "s"}`) +
+        kleur.dim(`  ${fmtTime(first)} → ${fmtTime(last).slice(11)}`),
     );
     console.log(kleur.dim("see them with `japonette review list`."));
   } catch (e) {
@@ -68,8 +89,11 @@ export async function reviewOpenCmd(when: string, range?: string): Promise<void>
 // into one), shared by `review list` and `review cancel` so their numbering
 // agrees.
 async function fetchUpcomingWindows(): Promise<SlotWindow[]> {
+  // Newest-first: with years of history, an ascending page-1 is all past slots
+  // and the upcoming ones never show. -begin_at puts the future on page 1
+  // (groupSlots re-sorts ascending for display).
   const slots = await withSpinner("fetching your slots...", () =>
-    apiGet<RawSlot[]>("/v2/me/slots", { "page[size]": 100, sort: "begin_at" }),
+    apiGet<RawSlot[]>("/v2/me/slots", { "page[size]": 100, sort: "-begin_at" }),
   );
   const now = Date.now();
   const upcoming = (slots ?? []).filter((s) => new Date(s.end_at).getTime() > now);
@@ -156,8 +180,10 @@ export async function reviewBookedCmd(
       : opts.receiving && !opts.giving
         ? "receiving"
         : null;
+    // Newest-first so upcoming evaluations aren't buried under years of past
+    // ones on page 1 (scaleTeamsTable filters to the future and re-sorts).
     const teams = await withSpinner("fetching your evaluations...", () =>
-      apiGet<any[]>("/v2/me/scale_teams", { "page[size]": 100, sort: "begin_at" }),
+      apiGet<any[]>("/v2/me/scale_teams", { "page[size]": 100, sort: "-begin_at" }),
     );
     let rows = teams ?? [];
     if (role) {
