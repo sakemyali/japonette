@@ -42,7 +42,17 @@ function resolveDay(day: string, now: Date): Date {
     throw new Error(`bad day "${day}" — use today, tomorrow, a weekday (mon…sun), or YYYY-MM-DD`);
   }
   const [, y, mo, da] = m;
-  return new Date(Number(y), Number(mo) - 1, Number(da));
+  const date = new Date(Number(y), Number(mo) - 1, Number(da));
+  // Reject impossible dates (JS rolls 2026-02-31 over to March) by checking the
+  // constructed date matches what was asked.
+  if (
+    date.getFullYear() !== Number(y) ||
+    date.getMonth() !== Number(mo) - 1 ||
+    date.getDate() !== Number(da)
+  ) {
+    throw new Error(`bad day "${day}" — not a real date`);
+  }
+  return date;
 }
 
 function isDayToken(t: string): boolean {
@@ -109,6 +119,11 @@ export function parseSlotRange(
     throw new Error(`bad range "${range}" — expected HH:MM-HH:MM, e.g. 14:00-16:00 (or 14-16)`);
   }
   const [, sh, sm, eh, em] = m;
+  const clamp = (h: number, mn: number) => {
+    if (h > 23 || mn > 59) throw new Error(`bad range "${range}" — hours 0–23, minutes 0–59`);
+  };
+  clamp(Number(sh), Number(sm ?? 0));
+  clamp(Number(eh), Number(em ?? 0));
   const begin = atTime(base, Number(sh), Number(sm ?? 0));
   const end = atTime(base, Number(eh), Number(em ?? 0));
   if (end <= begin) throw new Error("end time must be after start time");
@@ -183,7 +198,11 @@ export function groupSlots(slots: RawSlot[]): SlotWindow[] {
   for (const s of sorted) {
     const booked = s.scale_team != null;
     const last = windows[windows.length - 1];
-    if (last && !booked && !last.booked && last.end === s.begin_at) {
+    // Compare instants, not strings, so equivalent times in differing ISO
+    // formats still count as contiguous.
+    const contiguous =
+      last !== undefined && new Date(last.end).getTime() === new Date(s.begin_at).getTime();
+    if (last && !booked && !last.booked && contiguous) {
       last.end = s.end_at;
       last.ids.push(s.id);
       continue;

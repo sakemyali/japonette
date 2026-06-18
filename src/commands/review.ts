@@ -112,14 +112,32 @@ export async function reviewSlotsCmd(): Promise<void> {
   }
 }
 
-// Withdraw every 15-min slot in one open window, then report it.
+// Withdraw every 15-min slot in one open window. Each id is a separate DELETE,
+// so attempt them all and report honestly — a mid-window failure shouldn't
+// leave you guessing which half got cancelled.
 async function cancelWindow(w: SlotWindow): Promise<void> {
+  const failed: { id: number; reason: string }[] = [];
   await withSpinner(`cancelling ${whenLabel(w)}...`, async () => {
-    for (const id of w.ids) await apiDelete(`/v2/slots/${id}`);
+    for (const id of w.ids) {
+      try {
+        await apiDelete(`/v2/slots/${id}`);
+      } catch (e) {
+        failed.push({ id, reason: e instanceof Error ? e.message : String(e) });
+      }
+    }
   });
-  console.log(
-    kleur.green("✓ cancelled ") + whenLabel(w) + kleur.dim(`  (${w.ids.length} × 15-min)`),
+  const ok = w.ids.length - failed.length;
+  if (failed.length === 0) {
+    console.log(
+      kleur.green("✓ cancelled ") + whenLabel(w) + kleur.dim(`  (${w.ids.length} × 15-min)`),
+    );
+    return;
+  }
+  err(
+    `partially cancelled ${whenLabel(w)} — ${ok}/${w.ids.length} slots withdrawn, ` +
+      `${failed.length} failed (${failed[0]!.reason}). Re-run \`japonette review list\` to see what's left.`,
   );
+  process.exit(1);
 }
 
 // `review cancel [n]` — cancel an open slot by the number shown in `review list`

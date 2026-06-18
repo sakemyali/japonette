@@ -52,6 +52,16 @@ describe("parseSlotRange", () => {
   it("rejects a non-positive span", () => {
     expect(() => parseSlotRange("today", "16:00-14:00", now)).toThrow(/after start/);
   });
+
+  it("rejects out-of-range clock values instead of rolling over", () => {
+    expect(() => parseSlotRange("today", "24:00-25:00", now)).toThrow(/bad range/);
+    expect(() => parseSlotRange("today", "10:60-11:00", now)).toThrow(/bad range/);
+  });
+
+  it("rejects an impossible calendar date instead of rolling over", () => {
+    expect(() => parseSlotRange("2026-02-31", "09:00-10:00", now)).toThrow(/not a real date/);
+    expect(() => parseSlotRange("2026-13-01", "09:00-10:00", now)).toThrow(/not a real date/);
+  });
 });
 
 describe("parseSlotArgs", () => {
@@ -158,6 +168,15 @@ describe("groupSlots", () => {
       ids: [1, 2, 3],
       booked: false,
     });
+  });
+
+  it("merges across differing ISO formats for the same instant", () => {
+    const out = groupSlots([
+      slot(1, "2026-06-10T14:00:00Z", "2026-06-10T14:15:00.000Z"),
+      slot(2, "2026-06-10T14:15:00Z", "2026-06-10T14:30:00Z"),
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.ids).toEqual([1, 2]);
   });
 
   it("keeps a gap between non-contiguous open slots", () => {
