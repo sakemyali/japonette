@@ -30,13 +30,14 @@ export const COMMAND_GROUPS: HelpGroup[] = [
       { name: "campus list", summary: "all campuses + their slugs" },
       { name: "campus set [slug]", summary: "show or set your default campus" },
       { name: "cluster [id]", summary: "cluster occupancy index, or one map" },
+      { name: "tui", summary: "interactive live dashboard (mouse + keyboard)" },
     ],
   },
   {
     title: "People",
     commands: [
       { name: "user <login>", summary: "look up a 42 user" },
-      { name: "logtime [login]", summary: "per-month logtime totals" },
+      { name: "logtime [login]", summary: "logtime totals — monthly, weekly (-w), daily (-d)" },
     ],
   },
   {

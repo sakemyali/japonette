@@ -94,11 +94,12 @@ export async function userCmd(
 
 // `me` is `user` pointed at yourself: same presence-first card and map, no
 // login argument. A successful /v2/me also proves the cached token works,
-// covering the old `whoami` check.
+// covering the old `whoami` check. Unlike `user`, the full academic card is
+// the default — it's your own profile, no reason to hide the detail.
 export async function meCmd(opts: { info?: boolean } = {}): Promise<void> {
   try {
     const data = await apiGet<any>("/v2/me");
-    await renderUser(data, opts.info ?? false);
+    await renderUser(data, opts.info ?? true);
   } catch (e) {
     if (e instanceof ApiError || e instanceof AuthError) {
       err(e.message);

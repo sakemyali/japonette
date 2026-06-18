@@ -1,6 +1,6 @@
 {
   "name": "japonette",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "A small CLI for the 42 API: browse active people at a campus and keep a local friends watchlist.",
   "type": "module",
   "engines": {
@@ -24,7 +24,8 @@
   "dependencies": {
     "cli-table3": "^0.6.5",
     "commander": "^12.1.0",
-    "kleur": "^4.1.5"
+    "kleur": "^4.1.5",
+    "neo-blessed": "^0.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

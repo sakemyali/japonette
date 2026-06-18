@@ -27,6 +27,7 @@ import {
   reviewOpenCmd,
   reviewSlotsCmd,
 } from "./commands/review.js";
+import { tuiCmd } from "./commands/tui.js";
 import { uninstallCmd } from "./commands/uninstall.js";
 import { meCmd, userCmd } from "./commands/user.js";
 import { registerCompletionCommand } from "./completion.js";
@@ -67,9 +68,9 @@ program
 
 program
   .command("me")
-  .description("Your own profile — identity + live location (cluster map if online).")
-  .option("--info", "also show the academic profile (cursus, piscine, campus, pool)")
-  .action((opts: { info?: boolean }) => meCmd(opts));
+  .description("Your own profile — full academic card + live location (cluster map if online).")
+  .option("--brief", "only identity + live status (skip the academic card)")
+  .action((opts: { brief?: boolean }) => meCmd({ info: !opts.brief }));
 
 program
   .command("user <login>")
@@ -102,10 +103,11 @@ campus
 
 program
   .command("logtime [login]")
-  .description("Per-month logtime totals for a user (defaults to you).")
-  .option("-d, --days <n>", "range as days back from today (mutually exclusive with --months)")
-  .option("-m, --months <n>", "range as months back from today (default: 4)")
-  .action((login: string | undefined, opts: { days?: string; months?: string }) =>
+  .description("Logtime totals for a user (defaults to you) — monthly, weekly, or daily.")
+  .option("-d, --days <n>", "one row per day, last <n> days")
+  .option("-w, --weeks <n>", "one row per calendar week (mon–sun), last <n> weeks")
+  .option("-m, --months <n>", "one row per month, last <n> months (default: 4)")
+  .action((login: string | undefined, opts: { days?: string; weeks?: string; months?: string }) =>
     logtimeCmd(login, opts),
   );
 
@@ -114,6 +116,12 @@ program
   .description("List the campus's clusters (occupancy + friends), or open one's map by name or code.")
   .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
   .action((id: string | undefined, opts: { campus?: string }) => clusterCmd(id, opts));
+
+program
+  .command("tui")
+  .description("Interactive live dashboard: clusters, friends, your stats. Mouse + keyboard.")
+  .option("-c, --campus <slug>", "campus slug (defaults to your saved campus)")
+  .action((opts: { campus?: string }) => tuiCmd(opts));
 
 // Bare `friends` runs the daily action — who's online — and the watchlist is
 // managed through explicit verbs. `friends online` is kept as an explicit
