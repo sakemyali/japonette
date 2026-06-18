@@ -21,6 +21,12 @@ import {
 import { loginCmd } from "./commands/login.js";
 import { logoutCmd } from "./commands/logout.js";
 import { logtimeCmd } from "./commands/logtime.js";
+import {
+  reviewBookedCmd,
+  reviewCancelCmd,
+  reviewOpenCmd,
+  reviewSlotsCmd,
+} from "./commands/review.js";
 import { tuiCmd } from "./commands/tui.js";
 import { uninstallCmd } from "./commands/uninstall.js";
 import { meCmd, userCmd } from "./commands/user.js";
@@ -142,6 +148,35 @@ friends
   .command("remove <login>")
   .description("Remove a login from your local friends list.")
   .action(friendsRemoveCmd);
+
+// Peer evaluations. Bare `review` shows your booked evaluations (your
+// correction calendar); `review list` shows the availability slots you've
+// opened, and `review open` / `cancel` manage them. (`review booked` is an
+// explicit alias of bare `review`, mirroring `campus online`.)
+const review = program
+  .command("review")
+  .description("Your booked evaluations — both directions by default.")
+  .option("-g, --giving", "only reviews you'll do (you're the corrector)")
+  .option("-r, --receiving", "only reviews you'll receive (you're being evaluated)")
+  .action((opts: { giving?: boolean; receiving?: boolean }) => reviewBookedCmd(opts));
+review
+  .command("booked")
+  .description("Alias of `review` — your booked evaluations.")
+  .option("-g, --giving", "only reviews you'll do (you're the corrector)")
+  .option("-r, --receiving", "only reviews you'll receive (you're being evaluated)")
+  .action((opts: { giving?: boolean; receiving?: boolean }) => reviewBookedCmd(opts));
+review
+  .command("list")
+  .description("The availability slots you've opened (numbered for `cancel`).")
+  .action(reviewSlotsCmd);
+review
+  .command("open [args...]")
+  .description("Open a slot, e.g. `review open soon 1h`, `review open 14 90m`, `review open fri 2pm 1h30m`.")
+  .action((args: string[]) => reviewOpenCmd(args));
+review
+  .command("cancel [n]")
+  .description("Cancel an open slot by its number from `review list`, or pick one interactively.")
+  .action((n?: string) => reviewCancelCmd(n));
 
 registerCompletionCommand(program);
 

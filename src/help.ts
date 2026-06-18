@@ -50,6 +50,15 @@ export const COMMAND_GROUPS: HelpGroup[] = [
     ],
   },
   {
+    title: "Evaluations",
+    commands: [
+      { name: "review", summary: "your booked evaluations (both sides; -g/-r to filter)" },
+      { name: "review list", summary: "the availability slots you've opened" },
+      { name: "review open [day] <range>", summary: "open an availability slot (day → today)" },
+      { name: "review cancel [n]", summary: "cancel an open slot by number, or pick interactively" },
+    ],
+  },
+  {
     title: "Shell",
     commands: [
       { name: "completion <shell>", summary: "print a bash/zsh/fish completion script" },
