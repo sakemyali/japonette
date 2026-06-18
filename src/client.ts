@@ -32,15 +32,25 @@ function buildUrl(path: string, params?: Record<string, string | number>): strin
   return url.toString();
 }
 
-export async function apiGet<T = any>(
+// Shared request core: paced, with one retry that handles a 429 (honouring
+// Retry-After) and a 401 (expiring the cached token so getToken() refreshes).
+// `body`, when present, is sent as JSON. Returns the parsed JSON, or undefined
+// for an empty body (e.g. a 204 from DELETE).
+async function request<T>(
+  method: string,
   path: string,
-  params?: Record<string, string | number>,
+  opts: { params?: Record<string, string | number>; body?: unknown } = {},
 ): Promise<T> {
   for (let attempt = 0; attempt < 2; attempt++) {
     await pace();
     const token = await getToken();
-    const resp = await fetch(buildUrl(path, params), {
-      headers: { Authorization: `Bearer ${token}` },
+    const resp = await fetch(buildUrl(path, opts.params), {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(opts.body !== undefined ? { "Content-Type": "application/json" } : {}),
+      },
+      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
     });
     lastRequestAt = Date.now();
 
@@ -60,9 +70,25 @@ export async function apiGet<T = any>(
       const txt = await resp.text();
       throw new ApiError(resp.status, txt);
     }
-    return (await resp.json()) as T;
+    const txt = await resp.text();
+    return (txt ? JSON.parse(txt) : undefined) as T;
   }
   throw new ApiError(0, "exhausted retries");
+}
+
+export function apiGet<T = any>(
+  path: string,
+  params?: Record<string, string | number>,
+): Promise<T> {
+  return request<T>("GET", path, { params });
+}
+
+export function apiPost<T = any>(path: string, body?: unknown): Promise<T> {
+  return request<T>("POST", path, { body });
+}
+
+export function apiDelete<T = any>(path: string): Promise<T> {
+  return request<T>("DELETE", path, {});
 }
 
 export async function* paginate<T>(
