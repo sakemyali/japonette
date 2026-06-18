@@ -34,6 +34,12 @@ async function fetchOccupancy(campusId: number, slug: string): Promise<Map<strin
   return byHost;
 }
 
+// Match an id arg to a cluster by code (filename) or friendly name, case-
+// insensitively. Code is checked first, so it wins any collision.
+export function matchCluster(
+  clusters: { code: string; file: ClusterFile }[],
+  idArg: string,
+): { code: string; file: ClusterFile } | null {
   const target = idArg.trim().toLowerCase();
   const byCode = clusters.find((c) => c.code.toLowerCase() === target);
   if (byCode) return byCode;
